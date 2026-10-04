@@ -77,6 +77,8 @@ def test_run_streams_reply_reasoning_activity_and_snapshot(store, photos):
     assert roles == ["user", "reasoning", "assistant", "activity", "tool"]
     assert snapshot[2].tool_calls[0].function.name == "set_theme"
     assert snapshot[3].content["status"] == "done" and snapshot[3].content["items"][0]["status"] == "applied"
+    first = next(e for e in events if e.type == "ACTIVITY_SNAPSHOT").content  # as sent, before any change
+    assert first["status"] == "applying" and first["done"] == 0 and first["items"][0]["status"] == "pending"
     assert store.get_thread(f"book-{book.id}")["messages"][2]["content"].startswith("Restyled")
     finished = events[-1]
     assert finished.outcome.type == "success" and finished.usage is None  # offline: no model tokens

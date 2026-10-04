@@ -22,6 +22,7 @@ One run = one user request (or one approval decision). Shared state is {"book": 
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import queue
@@ -313,8 +314,9 @@ class Output:
         content = {"status": status, "done": 0, "total": len(items), "items": items}
         self.activity = {"id": _new_id(), "role": "activity", "activityType": ACTIVITY, "content": content}
         self.messages.append(self.activity)
+        # a copy: activity_patch() keeps changing `content`, and the event may be encoded later (on another thread)
         self.emit(ActivitySnapshotEvent(type=EventType.ACTIVITY_SNAPSHOT, message_id=self.activity["id"],
-                                        activity_type=ACTIVITY, content=content, replace=True))
+                                        activity_type=ACTIVITY, content=copy.deepcopy(content), replace=True))
 
     def activity_patch(self, patch: list[dict]) -> None:
         content = self.activity["content"]

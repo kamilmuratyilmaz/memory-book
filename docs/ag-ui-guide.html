@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AG-UI Chat Editing Guide</title>
+<meta name="description" content="How the Memory Book chat editing function uses the AG-UI protocol, with diagrams and a reading list of the source modules. Issue 1. Written in ASD-STE100 Simplified Technical English.">
+<style>
+:root {
+  --bg: #f6f7f4; --surface: #ffffff; --ink: #1a2320; --muted: #5d6963; --line: #d6dcd4;
+  --accent: #8a611c; --accent-soft: #f3ead7; --cloth: #24362f; --on-cloth: #e9ede7;
+  --warn-bg: #fbeee9; --warn-line: #d9a08f; --caution-bg: #fbf5e6; --caution-line: #dcc58c;
+  --code-bg: #eef1ec; --ok: #3f7a55; --blue: #2f5f8a; --blue-soft: #e5eef6;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131a17; --surface: #1b2420; --ink: #e6ebe7; --muted: #9eaba4; --line: #2f3b36;
+    --accent: #d9b56d; --accent-soft: #2c2a1f; --cloth: #0f1513; --on-cloth: #e6ebe7;
+    --warn-bg: #2d1d19; --warn-line: #8a4b3d; --caution-bg: #2a2516; --caution-line: #7a6833;
+    --code-bg: #222c28; --ok: #7cc196; --blue: #8db8de; --blue-soft: #1c2833;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131a17; --surface: #1b2420; --ink: #e6ebe7; --muted: #9eaba4; --line: #2f3b36;
+  --accent: #d9b56d; --accent-soft: #2c2a1f; --cloth: #0f1513; --on-cloth: #e6ebe7;
+  --warn-bg: #2d1d19; --warn-line: #8a4b3d; --caution-bg: #2a2516; --caution-line: #7a6833;
+  --code-bg: #222c28; --ok: #7cc196; --blue: #8db8de; --blue-soft: #1c2833;
+    color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 16px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; }
+code { background: var(--code-bg); padding: .08em .35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 10px 0; font-size: 13px; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+header.cover { background: var(--cloth); color: var(--on-cloth); padding: 48px 16px 40px; }
+header.cover > div { max-width: 1120px; margin: 0 auto; }
+header.cover h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 10px; }
+header.cover p { margin: 4px 0; color: color-mix(in srgb, var(--on-cloth) 75%, transparent); max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 13.5px; }
+.meta span { border: 1px solid color-mix(in srgb, var(--on-cloth) 25%, transparent); border-radius: 999px; padding: 3px 12px; }
+.layout { max-width: 1120px; margin: 0 auto; padding: 24px 16px 80px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 40px; }
+nav.toc { position: sticky; top: 16px; align-self: start; font-size: 13.5px; max-height: calc(100vh - 32px); overflow-y: auto; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; }
+nav.toc li { margin: 2px 0; }
+nav.toc a { color: var(--muted); text-decoration: none; display: block; padding: 3px 8px; border-radius: 6px; }
+nav.toc a:hover { background: var(--accent-soft); color: var(--ink); }
+nav.toc .sub a { padding-left: 20px; font-size: 13px; }
+main { min-width: 0; }
+main section { margin-bottom: 44px; }
+h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: 27px; margin: 0 0 12px; padding-top: 6px; border-top: 1px solid var(--line); }
+h3 { font-size: 17px; margin: 26px 0 8px; }
+p { margin: 8px 0; max-width: 78ch; }
+.num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.table-wrap { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--code-bg) 60%, var(--surface)); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+.callout { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 12px 0; max-width: 78ch; }
+.callout strong { display: block; letter-spacing: .04em; font-size: 13px; }
+.warning { background: var(--warn-bg); border-color: var(--warn-line); }
+.caution { background: var(--caution-bg); border-color: var(--caution-line); }
+.note { background: var(--accent-soft); border-color: var(--accent); }
+ol.steps { padding-left: 0; list-style: none; counter-reset: step; max-width: 78ch; }
+ol.steps > li { counter-increment: step; position: relative; padding: 6px 0 6px 40px; }
+ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--cloth); color: var(--on-cloth); font-size: 13px; display: grid; place-items: center; }
+ul.list { max-width: 78ch; padding-left: 20px; }
+ul.list li { margin: 3px 0; }
+figure { margin: 16px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; }
+figure svg { min-width: 640px; display: block; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+svg text { font-family: system-ui, -apple-system, sans-serif; }
+.d-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.d-core { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.d-svc { fill: var(--code-bg); stroke: var(--line); stroke-width: 1.5; }
+.d-cli { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.5; }
+.d-t { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.d-s { fill: var(--muted); font-size: 11.5px; }
+.d-m { fill: var(--ink); font-size: 11.5px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
+.d-e { fill: var(--accent); font-size: 11.5px; font-weight: 600; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
+.d-eb { fill: var(--blue); font-size: 11.5px; font-weight: 600; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
+.d-line { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.d-life { stroke: var(--line); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
+.d-req { stroke: var(--blue); stroke-width: 1.6; fill: none; }
+.d-evt { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.d-dash { stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+.d-loop { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.d-arrow { fill: var(--muted); }
+.d-arrow-a { fill: var(--accent); }
+.d-arrow-b { fill: var(--blue); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+.tag { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--code-bg); color: var(--muted); white-space: nowrap; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h4 { margin: 0 0 4px; font-size: 14.5px; }
+.card p { font-size: 14px; margin: 4px 0; }
+.read { counter-reset: read; list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
+.read > li { counter-increment: read; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 12px 56px; }
+.read > li::before { content: counter(read); position: absolute; left: 14px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--surface); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.read h4 { margin: 0 0 2px; font-size: 15px; }
+.read .where { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+.read ul { margin: 4px 0 0; padding-left: 18px; font-size: 14px; }
+.read li li { margin: 2px 0; }
+.theme-toggle { float: right; background: none; border: 1px solid color-mix(in srgb, var(--on-cloth) 30%, transparent); color: var(--on-cloth); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface); }
+  td:first-child { white-space: normal; }
+}
+@media print {
+  nav.toc, .theme-toggle { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  header.cover { background: none; color: var(--ink); }
+  figure svg { min-width: 0; }
+}
+</style>
+</head>
+<body>
+<header class="cover">
+  <div>
+    <button class="theme-toggle" type="button" aria-label="Change the color theme">Theme</button>
+    <h1>AG-UI Chat Editing — How It Works</h1>
+    <p>This guide tells how the chat editing function of Memory Book uses the AG-UI protocol. The diagrams show the components, the events and the approval procedure. Paragraph 10 gives the source modules to read, in sequence.</p>
+    <p>The language of this guide agrees with ASD-STE100 Simplified Technical English.</p>
+    <div class="meta">
+      <span>Issue 1</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>AG-UI protocol 1.0</span><span>Related: memory-book-report.html, Issue 3</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#use">0 How to use this guide</a></li>
+    <li><a href="#intro">1 Introduction</a></li>
+    <li><a href="#terms">2 Terms</a></li>
+    <li><a href="#components">3 Components</a></li>
+    <li><a href="#run">4 One run, step by step</a></li>
+    <li class="sub"><a href="#run-input">4.1 Run input</a></li>
+    <li class="sub"><a href="#run-sequence">4.2 Event sequence</a></li>
+    <li class="sub"><a href="#run-events">4.3 Event list</a></li>
+    <li class="sub"><a href="#run-wire">4.4 Example stream</a></li>
+    <li><a href="#state">5 Shared state and patches</a></li>
+    <li><a href="#approval">6 Approval (interrupt and resume)</a></li>
+    <li><a href="#thread">7 Thread and history</a></li>
+    <li><a href="#tool">8 Frontend tool</a></li>
+    <li><a href="#errors">9 Errors</a></li>
+    <li><a href="#reading">10 Modules to read</a></li>
+    <li class="sub"><a href="#reading-map">10.1 Reading map</a></li>
+    <li class="sub"><a href="#reading-list">10.2 Reading list</a></li>
+    <li class="sub"><a href="#exercise">10.3 Exercise</a></li>
+    <li><a href="#trace">11 Observability</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="use">
+  <h2><span class="num">0</span>How to use this guide</h2>
+  <p>Read paragraphs 1 to 3 first. They give the purpose, the terms and the components.</p>
+  <p>Paragraphs 4 to 9 tell what occurs during one chat request. Each paragraph has a diagram or a table.</p>
+  <p>Paragraph 10 gives the source modules. Read the modules in the sequence that the paragraph gives.</p>
+  <div class="note callout"><strong>NOTE</strong>A reference such as <code>agui.py:335</code> gives the file and the line number. All paths start at the root of the repository. The line numbers apply to commit <code>6874c56</code> and a later fix.</div>
+</section>
+
+<section id="intro">
+  <h2><span class="num">1</span>Introduction</h2>
+  <p>The user can change a book in two ways. The user can edit the pages with the mouse. Or the user can write a request in the chat panel, for example "Make the whole book feel more vintage".</p>
+  <p>AG-UI (Agent–User Interaction protocol) is an open protocol. It sets how a user interface and an AI agent exchange data. The browser sends one HTTP request. The server sends back a stream of small events. Each event has a type, for example <code>TEXT_MESSAGE_CONTENT</code> or <code>STATE_DELTA</code>.</p>
+  <p>With these events, the browser can show the work of the agent while the agent works:</p>
+  <ul class="list">
+    <li>The reply of the model, word by word.</li>
+    <li>A summary of the reasoning of the model.</li>
+    <li>A checklist of the planned changes and their progress.</li>
+    <li>Each change to the book, as a small JSON Patch.</li>
+    <li>A request for approval before a large change.</li>
+    <li>The token usage of the run.</li>
+  </ul>
+  <p>Memory Book uses the official AG-UI packages: <code>ag-ui-protocol</code> on the server (Python) and <code>@ag-ui/client</code> in the browser (TypeScript).</p>
+</section>
+
+<section id="terms">
+  <h2><span class="num">2</span>Terms</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Term</th><th>Meaning in this system</th></tr></thead>
+    <tbody>
+      <tr><td>Run</td><td>One request from the user, or one approval decision. One run is one HTTP request and one event stream. One run is also one undo step in the editor.</td></tr>
+      <tr><td>Thread</td><td>The conversation of one book. Its identifier is <code>book-&lt;book id&gt;</code>. The server keeps the thread in PostgreSQL.</td></tr>
+      <tr><td>Event</td><td>One message in the stream from the server, for example <code>RUN_STARTED</code>. The server sends each event as one Server-Sent Events (SSE) line.</td></tr>
+      <tr><td>State</td><td>The data that the browser and the agent share. In Memory Book, the state is <code>{"book": MemoryBook}</code>.</td></tr>
+      <tr><td>Plan</td><td>A list of typed operations that the model makes, for example <code>set_text</code> or <code>delete_page</code>. The model cannot do other actions.</td></tr>
+      <tr><td>Tool call</td><td>One operation of the plan, sent as <code>TOOL_CALL_*</code> events. A frontend tool is a tool that the browser does (paragraph 8).</td></tr>
+      <tr><td>Activity</td><td>A message that shows progress. Here it is the checklist of planned changes (<code>book-changes</code>).</td></tr>
+      <tr><td>Interrupt</td><td>A stop of the run to get a decision from the user. The next run sends the decision as <code>resume</code>.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="components">
+  <h2><span class="num">3</span>Components</h2>
+  <p>Figure 1 shows the components of the chat editing function. Blue boxes are in the browser. Brown boxes are the AG-UI part of the server. Grey boxes are other modules and services.</p>
+  <figure>
+    <svg viewBox="0 0 860 470" width="100%" role="img" aria-labelledby="f1-title f1-desc">
+      <title id="f1-title">Figure 1. Components of the chat editing function</title>
+      <desc id="f1-desc">The chat panel in the browser uses HttpAgent. HttpAgent sends a POST request to the server and receives server-sent events. On the server, app.py calls run_agent in agui.py. run_agent uses plan_revision and the AI model, apply_revision, needs_approval and PostgreSQL. MLflow records the traces.</desc>
+      <defs>
+        <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow"/></marker>
+        <marker id="m1b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow-b"/></marker>
+        <marker id="m1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow-a"/></marker>
+      </defs>
+      <rect x="20" y="16" width="820" height="112" rx="10" class="d-box"/>
+      <text x="36" y="40" class="d-t">Browser — web/src/editor</text>
+      <rect x="36" y="54" width="240" height="58" rx="7" class="d-cli"/><text x="156" y="78" text-anchor="middle" class="d-t">Chat panel</text><text x="156" y="96" text-anchor="middle" class="d-s">ChatPanel.tsx</text>
+      <rect x="310" y="54" width="240" height="58" rx="7" class="d-cli"/><text x="430" y="78" text-anchor="middle" class="d-t">HttpAgent</text><text x="430" y="96" text-anchor="middle" class="d-s">@ag-ui/client · applies patches</text>
+      <rect x="584" y="54" width="240" height="58" rx="7" class="d-cli"/><text x="704" y="78" text-anchor="middle" class="d-t">Editor (book + undo)</text><text x="704" y="96" text-anchor="middle" class="d-s">Editor.tsx</text>
+      <path d="M276 83 L308 83" class="d-line" marker-end="url(#m1)"/>
+      <path d="M550 83 L582 83" class="d-line" marker-end="url(#m1)"/>
+
+      <path d="M405 112 L405 178" class="d-req" marker-end="url(#m1b)"/>
+      <text x="397" y="150" text-anchor="end" class="d-eb">POST /api/agent</text>
+      <text x="397" y="164" text-anchor="end" class="d-s">RunAgentInput (JSON)</text>
+      <path d="M455 178 L455 114" class="d-evt" marker-end="url(#m1a)"/>
+      <text x="463" y="150" class="d-e">SSE event stream</text>
+      <text x="463" y="164" class="d-s">text/event-stream</text>
+
+      <rect x="20" y="180" width="820" height="176" rx="10" class="d-box"/>
+      <text x="36" y="204" class="d-t">App process (FastAPI) — src/memory_book</text>
+      <rect x="36" y="216" width="180" height="56" rx="7" class="d-svc"/><text x="126" y="240" text-anchor="middle" class="d-t">/api/agent</text><text x="126" y="258" text-anchor="middle" class="d-s">app.py:191</text>
+      <rect x="250" y="216" width="250" height="56" rx="7" class="d-core"/><text x="375" y="240" text-anchor="middle" class="d-t">run_agent → _run</text><text x="375" y="258" text-anchor="middle" class="d-s">agui.py:335 · worker thread + queue</text>
+      <rect x="534" y="216" width="290" height="56" rx="7" class="d-core"/><text x="679" y="240" text-anchor="middle" class="d-t">Output</text><text x="679" y="258" text-anchor="middle" class="d-s">agui.py:230 · makes the AG-UI events</text>
+      <path d="M216 244 L248 244" class="d-line" marker-end="url(#m1)"/>
+      <path d="M500 244 L532 244" class="d-line" marker-end="url(#m1)"/>
+      <rect x="36" y="288" width="250" height="56" rx="7" class="d-svc"/><text x="161" y="312" text-anchor="middle" class="d-t">plan_revision</text><text x="161" y="330" text-anchor="middle" class="d-s">pipeline.py:310 · gets the plan</text>
+      <rect x="310" y="288" width="250" height="56" rx="7" class="d-core"/><text x="435" y="312" text-anchor="middle" class="d-t">apply_revision + json_diff</text><text x="435" y="330" text-anchor="middle" class="d-s">pipeline.py:191 · agui.py:90</text>
+      <rect x="584" y="288" width="240" height="56" rx="7" class="d-core"/><text x="704" y="312" text-anchor="middle" class="d-t">needs_approval</text><text x="704" y="330" text-anchor="middle" class="d-s">agui.py:183 · the approval rule</text>
+      <path d="M340 272 L200 287" class="d-line" marker-end="url(#m1)"/>
+      <path d="M390 272 L420 287" class="d-line" marker-end="url(#m1)"/>
+      <path d="M480 272 L660 287" class="d-line" marker-end="url(#m1)"/>
+
+      <rect x="36" y="396" width="250" height="56" rx="7" class="d-svc"/><text x="161" y="420" text-anchor="middle" class="d-t">AI model</text><text x="161" y="438" text-anchor="middle" class="d-s">LiteLLM · ai.py (Gemini by default)</text>
+      <rect x="310" y="396" width="250" height="56" rx="7" class="d-svc"/><text x="435" y="420" text-anchor="middle" class="d-t">PostgreSQL</text><text x="435" y="438" text-anchor="middle" class="d-s">agent_threads · storage.py:193</text>
+      <rect x="584" y="396" width="240" height="56" rx="7" class="d-svc"/><text x="704" y="420" text-anchor="middle" class="d-t">MLflow</text><text x="704" y="438" text-anchor="middle" class="d-s">traces + tokens · tracing.py</text>
+      <path d="M161 344 L161 394" class="d-line" marker-end="url(#m1)"/>
+      <text x="169" y="374" class="d-s">streamed completion</text>
+      <path d="M435 344 L435 394" class="d-line" marker-end="url(#m1)"/>
+      <text x="443" y="374" class="d-s">thread + pending plan</text>
+      <path d="M760 272 L760 394" class="d-dash" marker-end="url(#m1a)"/>
+      <text x="768" y="374" class="d-s">spans</text>
+    </svg>
+    <figcaption>Figure 1. Components of the chat editing function. The blue arrow is the request. The brown arrow is the event stream.</figcaption>
+  </figure>
+  <div class="grid2">
+    <div class="card"><h4>Browser</h4><p><code>ChatPanel.tsx</code> shows the conversation. It uses <code>HttpAgent</code> to start a run and to receive the events. <code>HttpAgent</code> applies each state patch. Then the chat panel gives the new book to the editor.</p></div>
+    <div class="card"><h4>Server</h4><p><code>agui.py</code> is the AG-UI part of the server. It reads the run input, gets a plan from the model, applies the plan and sends the events. It does not change the book in the database. The editor saves the book.</p></div>
+  </div>
+</section>
+
+<section id="run">
+  <h2><span class="num">4</span>One run, step by step</h2>
+
+  <h3 id="run-input">4.1 Run input</h3>
+  <p>The browser sends one <code>POST /api/agent</code> request. The body is a <code>RunAgentInput</code> object. Table 1 gives the fields that Memory Book uses.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Field</th><th>Content</th><th>Server use</th></tr></thead>
+    <tbody>
+      <tr><td><code>threadId</code></td><td><code>book-&lt;id&gt;</code></td><td>Finds the stored thread.</td></tr>
+      <tr><td><code>runId</code></td><td>A new UUID for each run</td><td>Identifies the run in the events and in MLflow.</td></tr>
+      <tr><td><code>state.book</code></td><td>The book as the editor shows it now</td><td>The agent changes this copy. The server validates it first.</td></tr>
+      <tr><td><code>messages</code></td><td>The new user message</td><td>The server adds it to the stored thread. It ignores messages that it has already.</td></tr>
+      <tr><td><code>tools</code></td><td><code>show_page</code></td><td>Tells the server that the browser can turn to a page (paragraph 8).</td></tr>
+      <tr><td><code>context</code></td><td><code>editor-focus</code>: the current page and element</td><td>Words such as "this page" refer to this page.</td></tr>
+      <tr><td><code>resume</code></td><td>An approval decision, or empty</td><td>When present, the server does the stored plan (paragraph 6).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="figcaption" style="font-size:13px;color:var(--muted)">Table 1. Run input fields</p>
+
+  <h3 id="run-sequence">4.2 Event sequence</h3>
+  <p>Figure 2 shows one run without an approval stop. Time goes from the top to the bottom. Blue arrows go from the browser to the server. Brown arrows are events from the server.</p>
+  <figure>
+    <svg viewBox="0 0 860 640" width="100%" role="img" aria-labelledby="f2-title f2-desc">
+      <title id="f2-title">Figure 2. Event sequence of one run</title>
+      <desc id="f2-desc">The browser sends POST /api/agent. The server sends RUN_STARTED and STEP_STARTED planning. The server asks the model for a plan. The model streams reasoning and reply tokens, which the server sends as REASONING and TEXT_MESSAGE events. The server examines the approval rule. Then, for each operation, it sends TOOL_CALL events, a STATE_DELTA and an ACTIVITY_DELTA. At the end it saves the thread and sends MESSAGES_SNAPSHOT and RUN_FINISHED.</desc>
+      <defs>
+        <marker id="m2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow-a"/></marker>
+        <marker id="m2b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow-b"/></marker>
+        <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow"/></marker>
+      </defs>
+      <rect x="40" y="14" width="150" height="40" rx="7" class="d-cli"/><text x="115" y="39" text-anchor="middle" class="d-t">Browser</text>
+      <rect x="355" y="14" width="150" height="40" rx="7" class="d-core"/><text x="430" y="39" text-anchor="middle" class="d-t">Server (agui.py)</text>
+      <rect x="670" y="14" width="150" height="40" rx="7" class="d-svc"/><text x="745" y="39" text-anchor="middle" class="d-t">AI model</text>
+      <path d="M115 54 L115 630" class="d-life"/>
+      <path d="M430 54 L430 630" class="d-life"/>
+      <path d="M745 54 L745 630" class="d-life"/>
+
+      <path d="M115 84 L428 84" class="d-req" marker-end="url(#m2b)"/>
+      <text x="272" y="78" text-anchor="middle" class="d-eb">POST /api/agent</text>
+      <path d="M430 112 L117 112" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="106" text-anchor="middle" class="d-e">RUN_STARTED</text>
+      <path d="M430 140 L117 140" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="134" text-anchor="middle" class="d-e">STEP_STARTED "planning"</text>
+      <path d="M430 168 L743 168" class="d-line" marker-end="url(#m2)"/>
+      <text x="587" y="162" text-anchor="middle" class="d-s">completion(stream=True, schema=RevisionPlan)</text>
+      <path d="M745 198 L432 198" class="d-line" marker-end="url(#m2)"/>
+      <text x="587" y="192" text-anchor="middle" class="d-s">reasoning tokens</text>
+      <path d="M430 210 L117 210" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="204" text-anchor="middle" class="d-e">REASONING_*</text>
+      <path d="M745 240 L432 240" class="d-line" marker-end="url(#m2)"/>
+      <text x="587" y="234" text-anchor="middle" class="d-s">reply tokens + plan JSON</text>
+      <path d="M430 252 L117 252" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="246" text-anchor="middle" class="d-e">TEXT_MESSAGE_*</text>
+      <path d="M430 280 L117 280" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="274" text-anchor="middle" class="d-e">STEP_FINISHED "planning"</text>
+
+      <rect x="370" y="294" width="120" height="40" rx="6" class="d-box"/>
+      <text x="430" y="311" text-anchor="middle" class="d-s">needs_approval?</text>
+      <text x="430" y="326" text-anchor="middle" class="d-s">No → continue</text>
+      <text x="500" y="318" class="d-s">Yes → paragraph 6</text>
+
+      <path d="M430 358 L117 358" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="352" text-anchor="middle" class="d-e">STEP_STARTED "applying"</text>
+      <path d="M430 384 L117 384" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="378" text-anchor="middle" class="d-e">ACTIVITY_SNAPSHOT (checklist)</text>
+
+      <rect x="60" y="398" width="440" height="122" rx="6" class="d-loop"/>
+      <text x="68" y="414" class="d-s">loop: one time for each operation of the plan</text>
+      <path d="M430 438 L117 438" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="432" text-anchor="middle" class="d-e">TOOL_CALL_START / ARGS / END / RESULT</text>
+      <path d="M430 468 L117 468" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="462" text-anchor="middle" class="d-e">STATE_DELTA (JSON Patch)</text>
+      <path d="M430 498 L117 498" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="492" text-anchor="middle" class="d-e">ACTIVITY_DELTA (progress)</text>
+
+      <rect x="520" y="530" width="210" height="30" rx="6" class="d-svc"/>
+      <text x="625" y="550" text-anchor="middle" class="d-s">save_thread() → PostgreSQL</text>
+      <path d="M520 545 L432 545" class="d-line"/>
+      <path d="M430 574 L117 574" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="568" text-anchor="middle" class="d-e">MESSAGES_SNAPSHOT</text>
+      <path d="M430 608 L117 608" class="d-evt" marker-end="url(#m2a)"/>
+      <text x="272" y="602" text-anchor="middle" class="d-e">RUN_FINISHED (success + usage)</text>
+    </svg>
+    <figcaption>Figure 2. Event sequence of one run. The model sends tokens while it writes the plan, so the reply shows before the changes start.</figcaption>
+  </figure>
+  <div class="legend"><span><i style="border-color:var(--blue)"></i>Request from the browser</span><span><i style="border-color:var(--accent)"></i>AG-UI event</span><span><i style="border-color:var(--muted)"></i>Internal call</span></div>
+
+  <h3 id="run-events">4.3 Event list</h3>
+  <p>Table 2 gives each event that the server sends, in the sequence of a run. The column "Browser action" tells what <code>ChatPanel.tsx</code> does with the event.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Event</th><th>Meaning</th><th>Browser action</th></tr></thead>
+    <tbody>
+      <tr><td><code>RUN_STARTED</code></td><td>The run starts.</td><td>Shows "Thinking…".</td></tr>
+      <tr><td><code>STEP_STARTED</code> / <code>STEP_FINISHED</code></td><td>A step starts or stops: <code>planning</code> or <code>applying</code>.</td><td>Shows the step name.</td></tr>
+      <tr><td><code>REASONING_*</code></td><td>A summary of the reasoning of the model, in small parts.</td><td>Shows "How I approached this".</td></tr>
+      <tr><td><code>TEXT_MESSAGE_*</code></td><td>The reply of the assistant, in small parts.</td><td>Adds each part to the reply.</td></tr>
+      <tr><td><code>ACTIVITY_SNAPSHOT</code></td><td>The full checklist of the planned changes.</td><td>Shows the checklist.</td></tr>
+      <tr><td><code>TOOL_CALL_START</code> / <code>ARGS</code> / <code>END</code></td><td>One operation and its arguments, for example <code>set_theme {"themeId": "vintage"}</code>.</td><td>Keeps the call in the message list.</td></tr>
+      <tr><td><code>TOOL_CALL_RESULT</code></td><td>The result of the operation: <code>applied</code> or <code>skipped: …</code>.</td><td>Keeps the result.</td></tr>
+      <tr><td><code>STATE_DELTA</code></td><td>The change to the book, as JSON Patch operations.</td><td>Applies the patch. The editor shows the change immediately.</td></tr>
+      <tr><td><code>ACTIVITY_DELTA</code></td><td>A change to the checklist, for example one item is done.</td><td>Updates the checklist and the progress bar.</td></tr>
+      <tr><td><code>MESSAGES_SNAPSHOT</code></td><td>The full thread as the server keeps it.</td><td>Replaces the local message list.</td></tr>
+      <tr><td><code>RUN_FINISHED</code></td><td>The run stops. <code>outcome</code> is <code>success</code> or <code>interrupt</code>. <code>usage</code> gives the tokens.</td><td>Shows the undo button and the token count, or the approval box.</td></tr>
+      <tr><td><code>RUN_ERROR</code></td><td>The run stops because of an error (paragraph 9).</td><td>Shows the error message.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="figcaption" style="font-size:13px;color:var(--muted)">Table 2. Server events</p>
+
+  <h3 id="run-wire">4.4 Example stream</h3>
+  <p>The lines below are a real stream from the system. The request was "Make the whole book feel more vintage". The offline provider made the plan, so the stream has no token usage. Long lines are shortened with "…".</p>
+<pre><code>data: {"type":"RUN_STARTED","threadId":"book-bk_a86bc3b712","runId":"run"}
+data: {"type":"STEP_STARTED","stepName":"planning"}
+data: {"type":"REASONING_START","messageId":"c4397ae67d7f"}
+data: {"type":"REASONING_MESSAGE_CONTENT","messageId":"c4397ae67d7f","delta":"No AI model is configured, so I…"}
+data: {"type":"REASONING_END","messageId":"c4397ae67d7f"}
+data: {"type":"TEXT_MESSAGE_START","messageId":"46f9772f36cf","role":"assistant"}
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"46f9772f36cf","delta":"Restyled "}
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"46f9772f36cf","delta":"the "}
+…
+data: {"type":"TEXT_MESSAGE_END","messageId":"46f9772f36cf"}
+data: {"type":"STEP_FINISHED","stepName":"planning"}
+data: {"type":"STEP_STARTED","stepName":"applying"}
+data: {"type":"ACTIVITY_SNAPSHOT","activityType":"book-changes","content":{"status":"applying","done":0,"total":1,
+       "items":[{"op":"set_theme","label":"Change the theme to Vintage","status":"pending"}]},…}
+data: {"type":"TOOL_CALL_START","toolCallId":"d3358aa00813","toolCallName":"set_theme","parentMessageId":"46f9772f36cf"}
+data: {"type":"TOOL_CALL_ARGS","toolCallId":"d3358aa00813","delta":"{\"themeId\": \"vintage\"}"}
+data: {"type":"TOOL_CALL_END","toolCallId":"d3358aa00813"}
+data: {"type":"TOOL_CALL_RESULT","toolCallId":"d3358aa00813","content":"applied","role":"tool",…}
+data: {"type":"STATE_DELTA","delta":[{"op":"replace","path":"/book/themeId","value":"vintage"}]}
+data: {"type":"ACTIVITY_DELTA","patch":[{"op":"replace","path":"/items/0/status","value":"applied"},
+       {"op":"replace","path":"/done","value":1}],…}
+data: {"type":"STEP_FINISHED","stepName":"applying"}
+data: {"type":"MESSAGES_SNAPSHOT","messages":[…]}
+data: {"type":"RUN_FINISHED","threadId":"book-bk_a86bc3b712","runId":"run","result":{"awaitingApproval":false},"outcome":{"type":"success"}}</code></pre>
+  <div class="note callout"><strong>NOTE</strong>The <code>parentMessageId</code> of the tool call is the identifier of the reply. Thus the browser shows the changes as a part of that reply.</div>
+</section>
+
+<section id="state">
+  <h2><span class="num">5</span>Shared state and patches</h2>
+  <p>The browser and the agent share one state object: <code>{"book": …}</code>. The browser sends the full book one time, in the run input. After each operation, the server compares the book before and after the operation. Then it sends only the differences as a <code>STATE_DELTA</code> event.</p>
+  <p>A <code>STATE_DELTA</code> contains JSON Patch operations (RFC 6902). Figure 3 shows a real example. The plan changes the theme and moves page "pg_c" to position 1.</p>
+  <figure>
+    <svg viewBox="0 0 860 250" width="100%" role="img" aria-labelledby="f3-title f3-desc">
+      <title id="f3-title">Figure 3. A STATE_DELTA between two states of the book</title>
+      <desc id="f3-desc">The book before has theme travel and pages cover, a, b, c. The STATE_DELTA has two operations: replace the theme with vintage, and move page 3 to position 1. The book after has theme vintage and pages cover, c, a, b.</desc>
+      <defs><marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow-a"/></marker></defs>
+      <rect x="16" y="16" width="230" height="218" rx="8" class="d-box"/>
+      <text x="30" y="40" class="d-t">Book before</text>
+      <text x="30" y="70" class="d-m">themeId: "travel"</text>
+      <text x="30" y="96" class="d-m">pages:</text>
+      <text x="46" y="118" class="d-m">0  pg_cover</text>
+      <text x="46" y="138" class="d-m">1  pg_a</text>
+      <text x="46" y="158" class="d-m">2  pg_b</text>
+      <text x="46" y="178" class="d-m" style="fill:var(--accent);font-weight:700">3  pg_c</text>
+
+      <rect x="290" y="16" width="290" height="218" rx="8" class="d-core"/>
+      <text x="304" y="40" class="d-t">STATE_DELTA</text>
+      <text x="304" y="58" class="d-s">made by json_diff() — agui.py:90</text>
+      <text x="304" y="90" class="d-m">{"op": "replace",</text>
+      <text x="316" y="108" class="d-m">"path": "/book/themeId",</text>
+      <text x="316" y="126" class="d-m">"value": "vintage"}</text>
+      <text x="304" y="158" class="d-m">{"op": "move",</text>
+      <text x="316" y="176" class="d-m">"from": "/book/pages/3",</text>
+      <text x="316" y="194" class="d-m">"path": "/book/pages/1"}</text>
+
+      <rect x="624" y="16" width="220" height="218" rx="8" class="d-box"/>
+      <text x="638" y="40" class="d-t">Book after</text>
+      <text x="638" y="70" class="d-m">themeId: "vintage"</text>
+      <text x="638" y="96" class="d-m">pages:</text>
+      <text x="654" y="118" class="d-m">0  pg_cover</text>
+      <text x="654" y="138" class="d-m" style="fill:var(--accent);font-weight:700">1  pg_c</text>
+      <text x="654" y="158" class="d-m">2  pg_a</text>
+      <text x="654" y="178" class="d-m">3  pg_b</text>
+      <path d="M246 125 L288 125" class="d-evt" marker-end="url(#m3)"/>
+      <path d="M580 125 L622 125" class="d-evt" marker-end="url(#m3)"/>
+    </svg>
+    <figcaption>Figure 3. A STATE_DELTA between two states of the book. The patch has one operation for the moved page. It does not send the full page list again.</figcaption>
+  </figure>
+  <p><code>json_diff</code> compares lists of objects by their <code>id</code> field. Thus a moved page is one <code>move</code> operation, and a deleted page is one <code>remove</code> operation. A simple index comparison would send many <code>replace</code> operations for the same change.</p>
+  <p><code>HttpAgent</code> applies each patch to its copy of the state. Then it calls <code>onStateChanged</code> (<code>ChatPanel.tsx:107</code>). The chat panel gives the new book to the editor. All the patches of one run make one undo step.</p>
+  <div class="caution callout"><strong>CAUTION</strong>The server changes only the copy of the book in the run. The editor saves the book with its usual autosave. If the browser closes during a run, the stored thread is complete, but the changes are not in the saved book.</div>
+</section>
+
+<section id="approval">
+  <h2><span class="num">6</span>Approval (interrupt and resume)</h2>
+  <p>Some plans need the approval of the user before the server applies them. The rule is in <code>needs_approval</code> (<code>agui.py:183</code>):</p>
+  <ul class="list">
+    <li>The plan deletes one or more pages.</li>
+    <li>The plan changes more than 3 pages (<code>APPROVAL_PAGE_LIMIT</code>). A text edit counts for the page that contains the text.</li>
+  </ul>
+  <p>A change of theme or of the style of all text of one role does not need approval. These changes do not change words or photos, and one undo step removes them.</p>
+  <figure>
+    <svg viewBox="0 0 860 400" width="100%" role="img" aria-labelledby="f4-title f4-desc">
+      <title id="f4-title">Figure 4. Approval procedure</title>
+      <desc id="f4-desc">The model makes a plan. If the plan deletes pages or changes more than three pages, the server stores the plan as pending and finishes the run with outcome interrupt. The user then approves, cancels, or sends a new message. Approve starts a resume run that applies the stored plan. Cancel finishes with no change. A new message replaces the pending plan. A small plan is applied immediately.</desc>
+      <defs><marker id="m4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow"/></marker></defs>
+      <rect x="16" y="30" width="150" height="50" rx="7" class="d-cli"/><text x="91" y="52" text-anchor="middle" class="d-t">User request</text><text x="91" y="69" text-anchor="middle" class="d-s">run 1</text>
+      <rect x="200" y="30" width="150" height="50" rx="7" class="d-svc"/><text x="275" y="52" text-anchor="middle" class="d-t">Model makes plan</text><text x="275" y="69" text-anchor="middle" class="d-s">_request · agui.py:399</text>
+      <path d="M430 15 L510 55 L430 95 L350 55 Z" class="d-core"/>
+      <text x="430" y="51" text-anchor="middle" class="d-s">Delete pages, or</text><text x="430" y="66" text-anchor="middle" class="d-s">more than 3 pages?</text>
+      <path d="M166 55 L198 55" class="d-line" marker-end="url(#m4)"/>
+      <path d="M350 55 L352 55" class="d-line"/>
+      <rect x="600" y="30" width="240" height="50" rx="7" class="d-core"/><text x="720" y="52" text-anchor="middle" class="d-t">Apply the plan</text><text x="720" y="69" text-anchor="middle" class="d-s">_apply · RUN_FINISHED success</text>
+      <path d="M510 55 L598 55" class="d-line" marker-end="url(#m4)"/><text x="552" y="48" text-anchor="middle" class="d-s">No</text>
+      <path d="M430 95 L430 140" class="d-line" marker-end="url(#m4)"/><text x="440" y="122" class="d-s">Yes</text>
+      <rect x="290" y="142" width="280" height="62" rx="7" class="d-core"/>
+      <text x="430" y="164" text-anchor="middle" class="d-t">Store the plan as "pending"</text>
+      <text x="430" y="181" text-anchor="middle" class="d-s">ACTIVITY_SNAPSHOT status "proposed"</text>
+      <text x="430" y="196" text-anchor="middle" class="d-s">RUN_FINISHED outcome "interrupt"</text>
+      <path d="M430 204 L430 240" class="d-line" marker-end="url(#m4)"/>
+      <rect x="320" y="242" width="220" height="44" rx="7" class="d-cli"/><text x="430" y="262" text-anchor="middle" class="d-t">User decision</text><text x="430" y="278" text-anchor="middle" class="d-s">approval box in the chat panel</text>
+      <path d="M340 286 L150 330" class="d-line" marker-end="url(#m4)"/>
+      <path d="M430 286 L430 330" class="d-line" marker-end="url(#m4)"/>
+      <path d="M520 286 L710 330" class="d-line" marker-end="url(#m4)"/>
+      <rect x="16" y="332" width="270" height="56" rx="7" class="d-core"/><text x="151" y="352" text-anchor="middle" class="d-t">"Apply changes"</text><text x="151" y="368" text-anchor="middle" class="d-s">run 2: resolved + approved: true</text><text x="151" y="382" text-anchor="middle" class="d-s">→ apply the STORED plan</text>
+      <rect x="300" y="332" width="260" height="56" rx="7" class="d-svc"/><text x="430" y="352" text-anchor="middle" class="d-t">"Keep the book as it is"</text><text x="430" y="368" text-anchor="middle" class="d-s">run 2: cancelled (or no clear yes)</text><text x="430" y="382" text-anchor="middle" class="d-s">→ no change</text>
+      <rect x="574" y="332" width="270" height="56" rx="7" class="d-svc"/><text x="709" y="352" text-anchor="middle" class="d-t">New message instead</text><text x="709" y="368" text-anchor="middle" class="d-s">new plan replaces the pending plan</text><text x="709" y="382" text-anchor="middle" class="d-s">old decision → unknown_interrupt</text>
+    </svg>
+    <figcaption>Figure 4. Approval procedure. The decision is a second run on the same thread.</figcaption>
+  </figure>
+  <p>The approval decision is a new run. Its <code>resume</code> field contains <code>{interruptId, status, payload: {approved}}</code>. <code>_resume</code> (<code>agui.py:423</code>) does these checks:</p>
+  <ol class="steps">
+    <li>It compares <code>interruptId</code> with the stored pending interrupt. If they are different, the run stops with <code>RUN_ERROR</code> code <code>unknown_interrupt</code>.</li>
+    <li>It reads the plan from the database. It does not use a plan from the browser.</li>
+    <li>It applies the plan only if <code>status</code> is <code>resolved</code> and <code>approved</code> is exactly <code>true</code>. Each other value keeps the book as it is.</li>
+  </ol>
+  <div class="warning callout"><strong>WARNING</strong>Do not apply a plan that the browser sends in a resume request. A changed browser can send any plan. The server must use only the plan that it stored.</div>
+</section>
+
+<section id="thread">
+  <h2><span class="num">7</span>Thread and history</h2>
+  <p>The server keeps the thread of each book in the table <code>agent_threads</code> (<code>storage.py:193</code>). A row has the messages and the pending approval, if there is one.</p>
+  <ul class="list">
+    <li>When the chat panel opens, it gets the thread with <code>GET /api/agent/threads/{id}</code> (<code>app.py:198</code>). It also gets an open approval request.</li>
+    <li>The browser sends only the new message in each run. The server adds the stored messages.</li>
+    <li>The model gets the last 12 text turns (<code>HISTORY_LIMIT</code>). Thus a request such as "make it shorter" refers to the last change.</li>
+    <li>The server keeps a maximum of 200 messages for each thread (<code>THREAD_MESSAGE_LIMIT</code>).</li>
+  </ul>
+</section>
+
+<section id="tool">
+  <h2><span class="num">8</span>Frontend tool</h2>
+  <p>A frontend tool is a tool that the browser does, not the server. The chat panel offers one tool: <code>show_page</code> (<code>ChatPanel.tsx:9</code>). It turns the editor to a page.</p>
+  <ol class="steps">
+    <li>The browser sends the tool definition in <code>tools</code>.</li>
+    <li>After the changes, the server sends a <code>show_page</code> tool call with the last changed page. It does not send the call if the editor shows that page already.</li>
+    <li>The browser turns the editor to that page (<code>onToolCallEndEvent</code>).</li>
+    <li>The browser adds the tool result to the thread. The next run sends this result to the server.</li>
+  </ol>
+  <p>The server sends this tool call only when the browser offered the tool.</p>
+</section>
+
+<section id="errors">
+  <h2><span class="num">9</span>Errors</h2>
+  <p>A failed run stops with a <code>RUN_ERROR</code> event. The book in the editor does not change. Table 3 gives the error codes.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Code</th><th>Cause</th><th>Message to the user</th></tr></thead>
+    <tbody>
+      <tr><td><code>bad_input</code></td><td>The book in the state is not valid.</td><td>The book sent with this request is not valid.</td></tr>
+      <tr><td><code>bad_input</code></td><td>The request has no user message.</td><td>Send a message describing the change you want.</td></tr>
+      <tr><td><code>unknown_interrupt</code></td><td>The approval request is not open now.</td><td>This approval request is no longer open.</td></tr>
+      <tr><td><code>ai_error</code></td><td>The model did not give a usable plan.</td><td>The AI couldn't make that change. Your book is unchanged.</td></tr>
+      <tr><td><code>internal</code></td><td>An unexpected error on the server.</td><td>Something went wrong on our side.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="figcaption" style="font-size:13px;color:var(--muted)">Table 3. Error codes</p>
+  <p>If the model call fails, the server removes the partial reply from the thread. The cause can be a stream that stops, or a plan that is not valid. Then the server tries the offline rules. The offline rules can do structural changes only, for example a theme change. They cannot write new text. If the offline rules find no change, the run stops with <code>ai_error</code>.</p>
+</section>
+
+<section id="reading">
+  <h2><span class="num">10</span>Modules to read</h2>
+  <p>This paragraph gives the source modules of the chat editing function. Read them in the given sequence. Each step uses the knowledge of the step before it.</p>
+
+  <h3 id="reading-map">10.1 Reading map</h3>
+  <figure>
+    <svg viewBox="0 0 860 260" width="100%" role="img" aria-labelledby="f5-title f5-desc">
+      <title id="f5-title">Figure 5. Reading sequence of the modules</title>
+      <desc id="f5-desc">Eight steps: 1 tests/test_agui.py, 2 app.py, 3 agui.py run, 4 agui.py Output and json_diff, 5 ai.py plan types, 6 pipeline.py, 7 storage.py threads, 8 ChatPanel.tsx. tracing.py is optional.</desc>
+      <defs><marker id="m5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow"/></marker></defs>
+      <g>
+        <rect x="16" y="24" width="190" height="72" rx="8" class="d-svc"/><circle cx="38" cy="46" r="13" fill="var(--accent)"/><text x="38" y="51" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">1</text>
+        <text x="58" y="50" class="d-t">The behaviour</text><text x="30" y="74" class="d-s">tests/test_agui.py</text><text x="30" y="88" class="d-s">what a run must do</text>
+        <rect x="226" y="24" width="190" height="72" rx="8" class="d-svc"/><circle cx="248" cy="46" r="13" fill="var(--accent)"/><text x="248" y="51" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">2</text>
+        <text x="268" y="50" class="d-t">The endpoint</text><text x="240" y="74" class="d-s">app.py:191</text><text x="240" y="88" class="d-s">HTTP → event stream</text>
+        <rect x="436" y="24" width="190" height="72" rx="8" class="d-core"/><circle cx="458" cy="46" r="13" fill="var(--accent)"/><text x="458" y="51" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">3</text>
+        <text x="478" y="50" class="d-t">The run</text><text x="450" y="74" class="d-s">agui.py:335–474</text><text x="450" y="88" class="d-s">_run · _request · _apply</text>
+        <rect x="646" y="24" width="198" height="72" rx="8" class="d-core"/><circle cx="668" cy="46" r="13" fill="var(--accent)"/><text x="668" y="51" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">4</text>
+        <text x="688" y="50" class="d-t">Events + patches</text><text x="660" y="74" class="d-s">agui.py:90–330</text><text x="660" y="88" class="d-s">Output, json_diff, approval</text>
+        <path d="M206 60 L224 60" class="d-line" marker-end="url(#m5)"/>
+        <path d="M416 60 L434 60" class="d-line" marker-end="url(#m5)"/>
+        <path d="M626 60 L644 60" class="d-line" marker-end="url(#m5)"/>
+        <path d="M745 96 L745 118 L111 118 L111 140" class="d-line" marker-end="url(#m5)"/>
+        <rect x="16" y="142" width="190" height="72" rx="8" class="d-svc"/><circle cx="38" cy="164" r="13" fill="var(--accent)"/><text x="38" y="169" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">5</text>
+        <text x="58" y="168" class="d-t">The plan types</text><text x="30" y="192" class="d-s">ai.py:122–202</text><text x="30" y="206" class="d-s">RevisionPlan, Op* classes</text>
+        <rect x="226" y="142" width="190" height="72" rx="8" class="d-svc"/><circle cx="248" cy="164" r="13" fill="var(--accent)"/><text x="248" y="169" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">6</text>
+        <text x="268" y="168" class="d-t">Plan and apply</text><text x="240" y="192" class="d-s">pipeline.py:191, :310</text><text x="240" y="206" class="d-s">apply / plan_revision</text>
+        <rect x="436" y="142" width="190" height="72" rx="8" class="d-svc"/><circle cx="458" cy="164" r="13" fill="var(--accent)"/><text x="458" y="169" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">7</text>
+        <text x="478" y="168" class="d-t">The thread store</text><text x="450" y="192" class="d-s">storage.py:193–205</text><text x="450" y="206" class="d-s">get_thread, save_thread</text>
+        <rect x="646" y="142" width="198" height="72" rx="8" class="d-cli"/><circle cx="668" cy="164" r="13" fill="var(--accent)"/><text x="668" y="169" text-anchor="middle" style="fill:var(--surface);font-weight:700;font-size:13px">8</text>
+        <text x="688" y="168" class="d-t">The client</text><text x="660" y="192" class="d-s">editor/ChatPanel.tsx</text><text x="660" y="206" class="d-s">HttpAgent, callbacks</text>
+        <path d="M206 178 L224 178" class="d-line" marker-end="url(#m5)"/>
+        <path d="M416 178 L434 178" class="d-line" marker-end="url(#m5)"/>
+        <path d="M626 178 L644 178" class="d-line" marker-end="url(#m5)"/>
+        <text x="430" y="246" text-anchor="middle" class="d-s">Optional: tracing.py (MLflow spans and token usage) — paragraph 11</text>
+      </g>
+    </svg>
+    <figcaption>Figure 5. Reading sequence. Brown boxes are the AG-UI core. The blue box is the browser.</figcaption>
+  </figure>
+
+  <h3 id="reading-list">10.2 Reading list</h3>
+  <ol class="read">
+    <li>
+      <h4>The behaviour — <code>tests/test_agui.py</code></h4>
+      <p class="where">Start here. The tests show what a run must do, without the details of the code.</p>
+      <ul>
+        <li><code>test_run_streams_reply_reasoning_activity_and_snapshot</code> (line 63): the event sequence of Figure 2.</li>
+        <li><code>test_approval_interrupt_then_resume</code> (line 100): the interrupt and the resume of Figure 4.</li>
+        <li><code>test_cancel_and_superseded_approvals</code> (line 140): cancel, and a new message that replaces the pending plan.</li>
+        <li><code>test_frontend_tool_show_page_when_offered</code> (line 212): the frontend tool.</li>
+        <li><code>test_failures_become_run_errors</code> (line 224): the error codes of Table 3.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>The endpoint — <code>src/memory_book/app.py</code></h4>
+      <p class="where">Lines 191–202. Approximately 10 lines.</p>
+      <ul>
+        <li><code>POST /api/agent</code>: FastAPI validates the body as <code>RunAgentInput</code>. <code>EventEncoder</code> changes each event to one SSE line.</li>
+        <li><code>GET /api/agent/threads/{id}</code>: the stored thread and the open approval.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>The run — <code>src/memory_book/agui.py</code>, part 1</h4>
+      <p class="where">Read the docstring at the top first (lines 1–21). It gives the event sequence. Then read lines 335–474.</p>
+      <ul>
+        <li><code>run_agent</code> (335): the run goes in a worker thread. The events go through a queue to the HTTP response.</li>
+        <li><code>_run</code> (356): validates the book, loads the thread, selects <code>_request</code> or <code>_resume</code>, saves the thread and sends the last events.</li>
+        <li><code>_request</code> (399): gets the plan, examines the approval rule, then applies or stops.</li>
+        <li><code>_resume</code> (423): the three checks of paragraph 6.</li>
+        <li><code>_apply</code> (439): one tool call, one <code>STATE_DELTA</code> and one <code>ACTIVITY_DELTA</code> for each operation.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Events and patches — <code>src/memory_book/agui.py</code>, part 2</h4>
+      <p class="where">Lines 90–330.</p>
+      <ul>
+        <li><code>Output</code> (230): makes the AG-UI events. It also keeps the messages for the thread. <code>model_output</code> receives the tokens from the model.</li>
+        <li><code>json_diff</code> (90): the id-aware JSON Patch of paragraph 5.</li>
+        <li><code>needs_approval</code> (183) and <code>describe</code> (154): the approval rule and the checklist labels.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>The plan types — <code>src/memory_book/ai.py</code></h4>
+      <p class="where">Lines 122–202.</p>
+      <ul>
+        <li>The <code>Op*</code> classes, for example <code>OpSetText</code> and <code>OpDeletePage</code>: the only operations that the model can ask for.</li>
+        <li><code>RevisionPlan</code>: the summary and the list of operations. The model must give JSON that agrees with this schema.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Plan and apply — <code>src/memory_book/pipeline.py</code></h4>
+      <p class="where">Lines 191–330.</p>
+      <ul>
+        <li><code>plan_revision</code> (310): sends the book summary and the request to the model. If the model fails, it tries the offline rules (paragraph 9).</li>
+        <li><code>apply_revision</code> (191): applies the operations to the book. It skips an operation with an unknown identifier and tells why.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>The thread store — <code>src/memory_book/storage.py</code></h4>
+      <p class="where">Lines 193–205, and the table <code>agent_threads</code> in <code>SCHEMA</code>.</p>
+      <ul>
+        <li><code>get_thread</code> and <code>save_thread</code>: the messages and the pending plan of each book.</li>
+      </ul>
+    </li>
+    <li>
+      <h4>The client — <code>web/src/editor/ChatPanel.tsx</code></h4>
+      <p class="where">All of the file, approximately 220 lines.</p>
+      <ul>
+        <li>Line 57: <code>new HttpAgent({ url: '/api/agent', threadId })</code>.</li>
+        <li>Line 71: loads the stored thread when the panel opens.</li>
+        <li>Line 99: <code>agent.runAgent(…)</code> with the callbacks <code>onStateChanged</code>, <code>onToolCallEndEvent</code> and <code>onRunFinishedEvent</code>.</li>
+        <li>Line 141: <code>decide()</code> sends the approval decision as <code>resume</code>.</li>
+        <li><code>ChecklistView</code>: shows the activity checklist.</li>
+      </ul>
+    </li>
+  </ol>
+  <div class="note callout"><strong>NOTE</strong>The official AG-UI documentation is at <a href="https://docs.ag-ui.com">docs.ag-ui.com</a>. Read the pages "Events", "State management" and "Interrupts" after step 4.</div>
+
+  <h3 id="exercise">10.3 Exercise</h3>
+  <p>Do this procedure to see the events of a run on your computer. The procedure uses the offline provider. It does not use an API key.</p>
+  <ol class="steps">
+    <li>Start the database and the storage: <code>docker compose up -d db rustfs mlflow</code>.</li>
+    <li>Open <code>tests/test_agui.py</code>. Find <code>test_run_streams_reply_reasoning_activity_and_snapshot</code>.</li>
+    <li>After the line <code>t = types(events)</code>, add this line: <code>print(*t, sep="\n")</code>.</li>
+    <li>Run the test: <code>uv run pytest tests/test_agui.py -k streams_reply -s</code>.</li>
+    <li>Compare the printed list with Figure 2.</li>
+    <li>Remove the <code>print</code> line.</li>
+  </ol>
+  <div class="caution callout"><strong>CAUTION</strong>Do not use the real model for this exercise. Each run with the real model uses tokens and costs money.</div>
+</section>
+
+<section id="trace">
+  <h2><span class="num">11</span>Observability</h2>
+  <p>Each run is one MLflow trace with the name <code>agent_run</code> (<code>agui.py:372</code>). The trace contains these spans:</p>
+  <ul class="list">
+    <li><code>plan_revision</code>, with one <code>CHAT_MODEL</code> span for each model call. These spans keep the token usage and the cost.</li>
+    <li>One <code>TOOL</code> span for each operation, with its result.</li>
+  </ul>
+  <p>The trace has the session <code>book-&lt;id&gt;</code>. Thus the MLflow "Sessions" view shows all AI work for one book. The token usage also goes to the browser in <code>RUN_FINISHED.usage</code>. The chat panel shows it below the reply.</p>
+  <p>For more data, refer to <code>docs/memory-book-report.html</code>, paragraph 5.</p>
+</section>
+
+</main>
+</div>
+<script>
+// Theme toggle: light ↔ dark, remembered on this device when storage is available.
+(function () {
+  var root = document.documentElement, key = 'memory-book-report-theme';
+  try { var saved = localStorage.getItem(key); if (saved) root.dataset.theme = saved; } catch (e) {}
+  document.querySelector('.theme-toggle').addEventListener('click', function () {
+    var dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem(key, root.dataset.theme); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
