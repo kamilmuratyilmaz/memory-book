@@ -4,6 +4,16 @@ Give it photos and a few words about what happened; the AI writes the story, pla
 builds a complete book. You refine it in a visual editor, read it as an interactive book, and export a
 print-ready PDF — all from one structured document.
 
+- **AI book generation** — chapters, story text, layouts and cover from your photos and notes, with any model
+  [LiteLLM](https://docs.litellm.ai/docs/providers) supports (default `gemini/gemini-3.8-flash`), or offline without one.
+- **Visual editor** — 17 layouts, six themes, drag/resize/crop, undo, autosave with conflict handling.
+- **Chat editing over [AG-UI](https://docs.ag-ui.com)** — "make page 3 calmer": streamed reply and reasoning, live
+  changes, approval before large edits, one undo step per request.
+- **Face-aware crops** — photos are framed around the people in them.
+- **Reader** — 3D page turns, two-page spreads on desktop and landscape phones, real full screen.
+- **Print PDF** — vector text with embedded fonts, 300 dpi photos, optional bleed for print shops.
+- **Observability** — every AI step, token and cost traced in MLflow, per book.
+
 ```
                   MemoryBook (JSON, mm + pt)
                            │
@@ -21,7 +31,7 @@ docker compose up --build        # app + PostgreSQL + RustFS + MLflow → http:/
 
 | Service | Purpose | Local URL |
 |---|---|---|
-| `app` | API + web app | http://localhost:8000 |
+| `app` | API + web app | http://localhost:8000 (also `:8080`, for phones on your network) |
 | `db` | PostgreSQL 17: books, photo metadata, MLflow tracking data | localhost:5432 |
 | `rustfs` | S3-compatible object storage: photos, PDFs, MLflow artifacts | console http://localhost:9001 |
 | `mlflow` | AI observability: traces, token usage, sessions | http://localhost:5000 |
@@ -52,6 +62,9 @@ match compose, console at http://localhost:9001). Any S3-compatible store works.
 
 Development: `uv run memory-book` + `cd web && npm run dev` (Vite on :5173 proxies `/api` and `/static`).
 
+> **No login.** The app has no user accounts; anyone who can reach the port can read and change every book. Keep it on
+> a trusted network, and remove the `8080:8000` line from `docker-compose.yml` when you do not test on a phone.
+
 ## Tests
 
 ```bash
@@ -78,6 +91,23 @@ cd web && npx tsc -b && npm run lint
 Fidelity notes: browser text uses `font-kerning: none` and no ligatures because the PDF renderer places glyphs
 by advance width; vertical metrics are read from each font's hhea/OS-2 tables so baselines match.
 `tests/fixtures/parity.json` is checked by both test suites so the TS and Python crop/style maths can't drift.
+
+## Documentation
+
+| Document | For |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | Contributors and AI coding agents: commands, rules that keep the system correct, security |
+| [`docs/memory-book-report.html`](docs/memory-book-report.html) | Full system description: components, AG-UI, storage, MLflow, API, procedures (ASD-STE100) |
+| [`docs/ag-ui-guide.html`](docs/ag-ui-guide.html) | How chat editing uses AG-UI, with diagrams and a reading order of the source (ASD-STE100) |
+
+## TODO
+
+- [ ] **Automatic versioning.** Today the version is set by hand in two places that already disagree
+  (`pyproject.toml` 0.1.0, `web/package.json` 0.0.0), and the documents carry their own issue numbers. Plan:
+  - one source of truth: a git tag (`vX.Y.Z`) from which the Python and web versions are derived;
+  - Conventional Commits, so the next version (major / minor / patch) is calculated from the commit messages;
+  - a generated `CHANGELOG.md` and a GitHub Release for each tag, made by CI;
+  - show the version in the app (`/api/design`) and in the documents' header.
 
 ## License
 
