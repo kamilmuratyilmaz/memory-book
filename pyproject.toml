@@ -3,6 +3,7 @@ name = "memory-book"
 version = "0.1.0"
 description = "AI-powered memory books: generate, edit, read and print from one document model"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Kamil Murat Yılmaz", email = "74376625+kamilmuratyilmaz@users.noreply.github.com" }
 ]

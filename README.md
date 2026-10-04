@@ -80,3 +80,13 @@ cd web && npx tsc -b && npm run lint
 Fidelity notes: browser text uses `font-kerning: none` and no ligatures because the PDF renderer places glyphs
 by advance width; vertical metrics are read from each font's hhea/OS-2 tables so baselines match.
 `tests/fixtures/parity.json` is checked by both test suites so the TS and Python crop/style maths can't drift.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Bundled third-party files keep their own licenses:
+
+| Files | License |
+|---|---|
+| `src/memory_book/static/fonts/*.ttf` (Caveat, Cormorant Garamond, EB Garamond, Inter, Josefin Sans, Lora, Playfair Display) | SIL Open Font License 1.1 — texts in `src/memory_book/static/fonts/licenses/` |
+| `src/memory_book/models/face_detection_yunet_2023mar.onnx` (YuNet, OpenCV model zoo) | MIT — `src/memory_book/models/LICENSE-yunet` |
+
