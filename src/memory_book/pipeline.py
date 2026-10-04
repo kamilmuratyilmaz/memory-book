@@ -106,19 +106,20 @@ def sanitize_plan(plan: StoryPlan, photos: list[Asset], inp: GenerationInput) ->
 
 def compose_book(plan: StoryPlan, inp: GenerationInput, photos: list[Asset], generated_by: str) -> MemoryBook:
     aspects = {p.id: p.aspect for p in photos}
+    focus = {p.id: p.focus for p in photos if p.focus}
     book = MemoryBook(title=plan.title, subtitle=plan.subtitle, author=inp.author, pageSize=inp.pageSize,
                       orientation=inp.orientation, themeId=plan.themeId,
                       metadata=BookMetadata(generatedBy=generated_by, mood=inp.mood, assetIds=[p.id for p in photos]))
     cover = PageContent(template="cover", title=book.title, subtitle=book.subtitle, author=book.author,
                         photoIds=[plan.coverPhotoId] if plan.coverPhotoId else [])
     cover.template = best_template(cover, aspects, is_cover=True)
-    book.pages.append(materialize(book, cover, aspects)[0])
+    book.pages.append(materialize(book, cover, aspects, focus=focus)[0])
     for ch in plan.chapters:
         chapter = Chapter(title=ch.title, summary=ch.summary)
         book.chapters.append(chapter)
-        book.pages += layout_pages(book, ch.pages, aspects, chapter.id)
+        book.pages += layout_pages(book, ch.pages, aspects, chapter.id, focus)
     if plan.closing and (plan.closing.heading or plan.closing.body):
-        book.pages += layout_pages(book, [plan.closing], aspects)
+        book.pages += layout_pages(book, [plan.closing], aspects, focus=focus)
     return MemoryBook.model_validate(book.model_dump())  # final schema check before it is accepted
 
 
@@ -191,7 +192,9 @@ def apply_revision(book: MemoryBook, plan: RevisionPlan, store: Store) -> tuple[
     """Apply validated operations to a copy of the book. Invalid ops are skipped, never half-applied."""
     book = copy.deepcopy(book)
     library = set(book.metadata.assetIds) | book.asset_ids()
-    aspects = {k: a.aspect for k, a in store.get_assets(library).items()}
+    assets = store.get_assets(library)
+    aspects = {k: a.aspect for k, a in assets.items()}
+    focus = {k: a.focus for k, a in assets.items() if a.focus}
     skipped: list[str] = []
 
     def page_of(pid: str) -> MemoryPage | None:
@@ -200,8 +203,8 @@ def apply_revision(book: MemoryBook, plan: RevisionPlan, store: Store) -> tuple[
     def relayout(page: MemoryPage, content: PageContent) -> list[MemoryPage]:
         content.photoIds = [i for i in content.photoIds if i in library]
         content.template = best_template(content, aspects, is_cover=page.kind == "cover")
-        pages = layout_pages(book, [content], aspects, page.chapterId) if page.kind != "cover" else \
-            [materialize(book, content, aspects)[0]]
+        pages = layout_pages(book, [content], aspects, page.chapterId, focus) if page.kind != "cover" else \
+            [materialize(book, content, aspects, focus=focus)[0]]
         pages[0].id, pages[0].background = page.id, page.background
         return pages
 
@@ -231,7 +234,7 @@ def apply_revision(book: MemoryBook, plan: RevisionPlan, store: Store) -> tuple[
                 page = page_of(op.pageId)
                 if not page or (page.kind == "cover") != bool(TEMPLATES[op.template].get("cover")):
                     raise LookupError(op.pageId)
-                replace(page, apply_template(book, page, op.template, aspects, placeholders=False))
+                replace(page, apply_template(book, page, op.template, aspects, placeholders=False, focus=focus))
             elif isinstance(op, OpReplacePage):
                 page = page_of(op.pageId)
                 if not page:
@@ -244,7 +247,7 @@ def apply_revision(book: MemoryBook, plan: RevisionPlan, store: Store) -> tuple[
                 content = op.content
                 content.photoIds = [i for i in content.photoIds if i in library]
                 content.template = best_template(content, aspects)
-                new = layout_pages(book, [content], aspects, after.chapterId if after else None)
+                new = layout_pages(book, [content], aspects, after.chapterId if after else None, focus)
                 at = book.pages.index(after) + 1 if after else len(book.pages)
                 book.pages[at:at] = new
             elif isinstance(op, OpDeletePage):
@@ -281,7 +284,7 @@ def apply_revision(book: MemoryBook, plan: RevisionPlan, store: Store) -> tuple[
                 for p in targets:
                     p.chapterId = chapter.id
                 opener = materialize(book, PageContent(template="chapter-opener", heading=op.title, body=op.summary,
-                                                       chapterLabel="Chapter"), aspects)[0]
+                                                       chapterLabel="Chapter"), aspects, focus=focus)[0]
                 opener.chapterId = chapter.id
                 book.pages.insert(book.pages.index(targets[0]), opener)
             elif isinstance(op, OpSetStyle):

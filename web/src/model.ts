@@ -48,7 +48,12 @@ export interface MemoryBook {
     assetIds: string[]; notice: string }
 }
 
-export interface AssetInfo { id: string; filename: string; width: number; height: number; takenAt: string | null; description: string }
+/** Where the faces are (0..1 of the photo), found by the server when the photo is uploaded; null = not analysed yet. */
+export interface PhotoFocus { x?: number; y?: number; faces: number }
+export interface AssetInfo {
+  id: string; filename: string; width: number; height: number; takenAt: string | null; description: string
+  focus?: PhotoFocus | null
+}
 
 // --- design (served by /api/design from static/themes.json) ---
 export interface RoleStyle {
@@ -110,6 +115,11 @@ export function resolveText(theme: Theme, role: TextRole, style: TextStyle, scal
     align: pick('align', 'left'),
     color: color(theme, style.color ?? base.color),
   }
+}
+
+/** Mirrors layout.photo_crop(): a new photo's crop, centred on its faces, else a little above centre. */
+export function photoCrop(focus: PhotoFocus | null | undefined, zoom = 1): ImageCrop {
+  return focus?.faces && focus.x != null && focus.y != null ? { x: focus.x, y: focus.y, zoom } : { x: 0.5, y: 0.42, zoom }
 }
 
 /** Mirrors model.crop_rect(): the source rect (px) a cover-fit box shows. */

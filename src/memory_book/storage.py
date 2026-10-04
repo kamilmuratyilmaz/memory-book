@@ -11,6 +11,7 @@ Object keys: assets/{id}/original.{ext}, assets/{id}/preview.jpg, assets/{id}/th
 from __future__ import annotations
 
 import io
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -23,7 +24,10 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
+from . import faces
 from .model import MemoryBook, new_id, now_iso
+
+log = logging.getLogger(__name__)
 
 Image.MAX_IMAGE_PIXELS = 250_000_000  # refuse decompression bombs, allow big camera files
 VARIANTS = {"preview": 1800, "thumb": 480}
@@ -56,6 +60,8 @@ CREATE TABLE IF NOT EXISTS agent_threads (
     messages JSONB NOT NULL DEFAULT '[]',
     pending JSONB,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+-- where the faces are (faces.focus); NULL = not analysed yet
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS focus JSONB;
 """
 THREAD_MESSAGE_LIMIT = 200  # ponytail: keep the newest messages only; summarise old turns if threads get long
 
@@ -78,6 +84,7 @@ class Asset:
     height: int
     taken_at: str | None
     description: str
+    focus: dict | None = None  # {"x", "y", "faces"} from faces.focus
 
     @property
     def aspect(self) -> float:
@@ -85,7 +92,7 @@ class Asset:
 
     def public(self) -> dict:
         return {"id": self.id, "filename": self.filename, "width": self.width, "height": self.height,
-                "takenAt": self.taken_at, "description": self.description}
+                "takenAt": self.taken_at, "description": self.description, "focus": self.focus}
 
 
 class Blobs:
@@ -222,17 +229,28 @@ class Store:
             buf = io.BytesIO()
             v.save(buf, "JPEG", quality=84, optimize=True, progressive=True)
             self.blobs.put(f"assets/{asset_id}/{name}.jpg", buf.getvalue(), "image/jpeg")
-        asset = Asset(asset_id, filename, im.width, im.height, taken_at, "")
-        self._one("INSERT INTO assets (id, filename, width, height, taken_at, ext) VALUES (%s, %s, %s, %s, %s, %s)",
-                  (asset.id, filename, asset.width, asset.height, taken_at, ext))
+        asset = Asset(asset_id, filename, im.width, im.height, taken_at, "", _focus(rgb, asset_id))
+        self._one("INSERT INTO assets (id, filename, width, height, taken_at, ext, focus) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                  (asset.id, filename, asset.width, asset.height, taken_at, ext, Jsonb(asset.focus) if asset.focus else None))
         return asset
 
     def get_assets(self, ids: list[str] | set[str]) -> dict[str, Asset]:
         if not ids:
             return {}
-        rows = self._all("SELECT id, filename, width, height, taken_at, description FROM assets WHERE id = ANY(%s)",
+        rows = self._all("SELECT id, filename, width, height, taken_at, description, focus FROM assets WHERE id = ANY(%s)",
                          (list(ids),))
         return {r["id"]: Asset(**r) for r in rows}
+
+    def backfill_focus(self) -> int:
+        """Find the faces in photos uploaded before face detection existed (runs once, in the background)."""
+        done = 0
+        for row in self._all("SELECT id FROM assets WHERE focus IS NULL"):
+            found = self.asset_bytes(row["id"], "preview")
+            spot = _focus(Image.open(io.BytesIO(found[0])), row["id"]) if found else {"faces": 0}
+            if spot:
+                self._one("UPDATE assets SET focus = %s WHERE id = %s", (Jsonb(spot), row["id"]))
+                done += 1
+        return done
 
     def set_asset_description(self, asset_id: str, description: str) -> None:
         self._one("UPDATE assets SET description = %s WHERE id = %s", (description, asset_id))
@@ -271,6 +289,15 @@ class Store:
 
     def get_export(self, name: str) -> bytes | None:
         return self.blobs.get(f"exports/{name}")
+
+
+def _focus(im: Image.Image, asset_id: str) -> dict | None:
+    """faces.focus, but a photo is never refused because detection failed (None = try again later)."""
+    try:
+        return faces.focus(im)
+    except Exception:
+        log.exception("face detection failed for %s", asset_id)
+        return None
 
 
 def _flatten(im: Image.Image) -> Image.Image:

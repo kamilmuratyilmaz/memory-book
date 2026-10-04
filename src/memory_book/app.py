@@ -93,7 +93,9 @@ def _friendly(e: Exception) -> str:
 
 
 def create_app(store: Store | None = None, provider: AIProvider | None = None) -> FastAPI:
-    store = store or default_store()
+    if store is None:  # the real server (tests pass their own store): find faces in photos uploaded before
+        store = default_store()
+        threading.Thread(target=store.backfill_focus, name="backfill-focus", daemon=True).start()
     provider = provider or default_provider()
     tracing.init()
     jobs = Jobs()
@@ -105,8 +107,10 @@ def create_app(store: Store | None = None, provider: AIProvider | None = None) -
             raise HTTPException(404, "We couldn't find this book.")
         return found
 
-    def aspects_for(book: MemoryBook) -> dict[str, float]:
-        return {k: a.aspect for k, a in store.get_assets(set(book.metadata.assetIds) | book.asset_ids()).items()}
+    def photo_shapes(book: MemoryBook) -> tuple[dict[str, float], dict[str, dict]]:
+        """Aspect ratio and face focus of every photo the book can use."""
+        assets = store.get_assets(set(book.metadata.assetIds) | book.asset_ids())
+        return {k: a.aspect for k, a in assets.items()}, {k: a.focus for k, a in assets.items() if a.focus}
 
     @app.get("/api/design")
     def get_design():
@@ -202,13 +206,13 @@ def create_app(store: Store | None = None, provider: AIProvider | None = None) -
         """Stateless template application — the same layout engine the AI uses."""
         if req.template not in TEMPLATES:
             raise HTTPException(422, "Unknown layout")
-        aspects = aspects_for(req.book)
+        aspects, focus = photo_shapes(req.book)
         if req.page:
             if (req.page.kind == "cover") != bool(TEMPLATES[req.template].get("cover")):
                 raise HTTPException(422, "Cover layouts can only be used on the cover.")
-            return {"pages": apply_template(req.book, req.page, req.template, aspects)}
+            return {"pages": apply_template(req.book, req.page, req.template, aspects, focus=focus)}
         content = (req.content or PageContent()).model_copy(update={"template": req.template})
-        return {"pages": [materialize(req.book, content, aspects, placeholders=True)[0]]}
+        return {"pages": [materialize(req.book, content, aspects, placeholders=True, focus=focus)[0]]}
 
     @app.post("/api/resize")
     def resize(req: ResizeRequest):
@@ -218,11 +222,11 @@ def create_app(store: Store | None = None, provider: AIProvider | None = None) -
         if req.pageSize == "Square":
             book.orientation = "portrait"
         w, h = book.page_dims()
-        aspects = aspects_for(book)
+        aspects, focus = photo_shapes(book)
         pages = []
         for page in book.pages:
             if page.template in TEMPLATES:
-                pages += apply_template(book, page, page.template, aspects, placeholders=True)
+                pages += apply_template(book, page, page.template, aspects, placeholders=True, focus=focus)
                 continue
             for e in page.elements:
                 e.box = e.box.model_copy(update={"x": e.box.x * w / old_w, "w": e.box.w * w / old_w,

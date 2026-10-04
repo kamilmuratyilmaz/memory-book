@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { assetUrl } from '../api'
 import {
-  color, resolveText, sizeScale, pageDims, themeOf, type Align, type AssetInfo, type Box, type Design, type ImageElement,
+  color, photoCrop, resolveText, sizeScale, pageDims, themeOf, type Align, type AssetInfo, type Box, type Design, type ImageElement,
   type MemoryBook, type MemoryPage, type PageElement, type ShapeElement, type TextElement, type TextStyle, type Theme,
 } from '../model'
 
@@ -183,7 +183,10 @@ function ImagePanel(p: Props & { el: ImageElement }) {
             <input type="range" className="w-full" min={0} max={1} step={0.01} value={el.crop.y} onChange={e => setCrop({ y: Number(e.target.value) }, `fy-${el.id}`)} />
           </label>
           <p className="hint">Double-click the photo on the page to drag it into place.</p>
-          <button className="btn btn-quiet btn-sm" onClick={() => setCrop({ x: 0.5, y: 0.5, zoom: 1 }, `reset-${Date.now()}`)}>Reset crop</button>
+          {asset.focus?.faces
+            ? <button className="btn btn-quiet btn-sm" onClick={() => setCrop(photoCrop(asset.focus, el.crop.zoom), `faces-${Date.now()}`)}>
+                Centre on {asset.focus.faces === 1 ? 'the face' : `${asset.focus.faces} faces`}</button>
+            : <button className="btn btn-quiet btn-sm" onClick={() => setCrop(photoCrop(asset.focus), `reset-${Date.now()}`)}>Reset crop</button>}
           <button className="btn btn-quiet btn-sm" onClick={() => p.onElement(e => {
             const img = e as ImageElement
             return { ...img, box: { ...img.box, h: img.box.w * (asset.height / asset.width) } }
@@ -340,6 +343,7 @@ function BookPanel(p: Props) {
           ))}
         </div>
       </Section>
+      <FacesSection {...p} />
       <Section title="Book size">
         <div className="segmented">
           {(['A5', 'A4', 'Square'] as const).map(s => (
@@ -358,5 +362,29 @@ function BookPanel(p: Props) {
         )}
       </Section>
     </>
+  )
+}
+
+/** Every photo in the book with faces, re-centred on them in one undoable step (zoom is kept). */
+function FacesSection(p: Props) {
+  const fits = p.book.pages.flatMap(pg => pg.elements).filter((e): e is ImageElement =>
+    e.type === 'image' && !!e.assetId && !!p.assets[e.assetId]?.focus?.faces)
+  const off = fits.filter(e => {
+    const want = photoCrop(p.assets[e.assetId!].focus, e.crop.zoom)
+    return Math.abs(want.x - e.crop.x) > 0.01 || Math.abs(want.y - e.crop.y) > 0.01
+  })
+  const centre = () => p.onBook({
+    pages: p.book.pages.map(pg => ({
+      ...pg, elements: pg.elements.map(e => off.includes(e as ImageElement)
+        ? { ...e, crop: photoCrop(p.assets[(e as ImageElement).assetId!].focus, (e as ImageElement).crop.zoom) } : e),
+    })),
+  })
+  return (
+    <Section title="Faces in photos">
+      <p className="hint">{fits.length === 0 ? 'No faces found in this book’s photos.'
+        : off.length === 0 ? `All ${fits.length} photos with people are centred on their faces.`
+          : `${off.length} of ${fits.length} photos with people are not centred on the faces.`}</p>
+      <button className="btn btn-quiet btn-sm" disabled={off.length === 0} onClick={centre}>Centre photos on faces</button>
+    </Section>
   )
 }

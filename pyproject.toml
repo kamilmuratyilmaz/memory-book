@@ -13,6 +13,7 @@ dependencies = [
     "fastapi>=0.142.2",
     "litellm==1.104.0",
     "mlflow-tracing>=3.16.1",
+    "opencv-python-headless==5.0.0.93",
     "pillow>=12.3.0",
     "psycopg-pool>=3.3.3",
     "psycopg[binary]>=3.3.6",

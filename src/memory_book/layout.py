@@ -241,8 +241,14 @@ def _fit_text(el: TextElement, rt: design.ResolvedText, field: str) -> str:
     return ""
 
 
+def photo_crop(focus: dict | None) -> ImageCrop:
+    """A new photo's crop: centred on its faces (storage.Asset.focus), else a little above centre."""
+    return ImageCrop(x=focus["x"], y=focus["y"]) if focus and focus.get("faces") else ImageCrop(y=0.42)
+
+
 def materialize(book: MemoryBook, content: PageContent, aspects: dict[str, float], *,
-                placeholders: bool = False, page: MemoryPage | None = None) -> tuple[MemoryPage, str]:
+                placeholders: bool = False, page: MemoryPage | None = None,
+                focus: dict[str, dict] | None = None) -> tuple[MemoryPage, str]:
     """Build a page from a template. Returns the page and any body text that did not fit."""
     tpl = TEMPLATES.get(content.template) or TEMPLATES["photo-text"]
     pw, ph = book.page_dims()
@@ -273,7 +279,7 @@ def materialize(book: MemoryBook, content: PageContent, aspects: dict[str, float
                 continue
             if tilt and s.get("area") != "page" and len(img_slots) > 1:
                 b.rotation = tilt * (1 if s["index"] % 2 else -1)
-            page.elements.append(ImageElement(box=b, assetId=pid, crop=ImageCrop(y=0.42), slot=f"photo.{s['index']}",
+            page.elements.append(ImageElement(box=b, assetId=pid, crop=photo_crop((focus or {}).get(pid)), slot=f"photo.{s['index']}",
                                               frame="none" if s.get("area") == "page" else "theme"))
         elif s["t"] == "shape":
             kind = th["ornament"] if s["kind"] == "ornament" else s["kind"]
@@ -359,7 +365,7 @@ def best_template(c: PageContent, aspects: dict[str, float], is_cover: bool = Fa
 
 
 def layout_pages(book: MemoryBook, contents: list[PageContent], aspects: dict[str, float],
-                 chapter_id: str | None = None) -> list[MemoryPage]:
+                 chapter_id: str | None = None, focus: dict[str, dict] | None = None) -> list[MemoryPage]:
     """Materialize a run of planned pages, splitting oversized photo sets and overflowing text."""
     pages: list[MemoryPage] = []
     for c in contents:
@@ -369,22 +375,22 @@ def layout_pages(book: MemoryBook, contents: list[PageContent], aspects: dict[st
                 PageContent(template="four-grid", photoIds=c.photoIds[i:i + 4]) for i in range(4, len(c.photoIds), 4)]
         for q in queue:
             q.template = best_template(q, aspects)
-            page, rest = materialize(book, q, aspects)
+            page, rest = materialize(book, q, aspects, focus=focus)
             page.chapterId = chapter_id
             pages.append(page)
             # Never drop planned words: text the template has no slot for goes on a following page.
             fields = {s.get("field") for s in TEMPLATES[q.template]["slots"]}
             if q.quote and "quote" not in fields:
-                pages.append(materialize(book, PageContent(template="quote", quote=q.quote, attribution=q.attribution), aspects)[0])
+                pages.append(materialize(book, PageContent(template="quote", quote=q.quote, attribution=q.attribution), aspects, focus=focus)[0])
             lost = {k: getattr(q, k) for k in ("heading", "body") if getattr(q, k) and k not in fields}
             if lost:
-                page, rest = materialize(book, PageContent(template="minimal-text", **lost), aspects)
+                page, rest = materialize(book, PageContent(template="minimal-text", **lost), aspects, focus=focus)
                 pages.append(page)
             for p in pages:
                 p.chapterId = p.chapterId or chapter_id
             guard = 0
             while rest and guard < 20:
-                page, rest = materialize(book, PageContent(template="minimal-text", body=rest), aspects)
+                page, rest = materialize(book, PageContent(template="minimal-text", body=rest), aspects, focus=focus)
                 page.chapterId = chapter_id
                 pages.append(page)
                 guard += 1
@@ -393,7 +399,7 @@ def layout_pages(book: MemoryBook, contents: list[PageContent], aspects: dict[st
 
 
 def apply_template(book: MemoryBook, page: MemoryPage, template: str, aspects: dict[str, float], *,
-                   placeholders: bool = True) -> list[MemoryPage]:
+                   placeholders: bool = True, focus: dict[str, dict] | None = None) -> list[MemoryPage]:
     """Re-template a page exactly as asked. Photos and text that no longer fit spill onto
     following pages, so switching layouts never loses content."""
     tpl = TEMPLATES[template]
@@ -403,7 +409,7 @@ def apply_template(book: MemoryBook, page: MemoryPage, template: str, aspects: d
     fields = {s.get("field") for s in tpl["slots"]}
     lost = {k: getattr(c, k) for k in ("heading", "body") if getattr(c, k) and k not in fields}
     quote = c.quote if c.quote and "quote" not in fields else ""
-    out, rest = materialize(book, c, aspects, placeholders=placeholders, page=page)
+    out, rest = materialize(book, c, aspects, placeholders=placeholders, page=page, focus=focus)
     extra = [PageContent(template="minimal-text", **lost)] if lost else []
     if rest:
         extra.append(PageContent(template="minimal-text", body=rest))
@@ -411,4 +417,4 @@ def apply_template(book: MemoryBook, page: MemoryPage, template: str, aspects: d
         extra.append(PageContent(template="quote", quote=quote, attribution=c.attribution))
     if spill_photos:
         extra.append(PageContent(template="four-grid", photoIds=spill_photos))
-    return [out, *layout_pages(book, extra, aspects, page.chapterId)]
+    return [out, *layout_pages(book, extra, aspects, page.chapterId, focus)]

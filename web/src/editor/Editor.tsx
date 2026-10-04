@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, waitForJob } from '../api'
 import { useDesign } from '../App'
-import { newBox, pageDims, uid, type AssetInfo, type ImageElement, type MemoryBook, type PageElement, type TextElement } from '../model'
+import { newBox, pageDims, photoCrop, uid, type AssetInfo, type ImageElement, type MemoryBook, type PageElement, type TextElement } from '../model'
 import { Link } from '../router'
 import { clearDraft, readDraft, useAutosave, type SaveStatus } from './autosave'
 import { Canvas } from './Canvas'
@@ -153,7 +153,7 @@ export function Editor({ bookId }: { bookId: string }) {
     const bw = w * 0.6
     const bh = a ? Math.min(bw * (a.height / a.width), h * 0.6) : bw * 0.7
     const x = at ? at.x - bw / 2 : (w - bw) / 2, y = at ? at.y - bh / 2 : (h - bh) / 2
-    const el: ImageElement = { type: 'image', id: uid('el'), box: newBox(x, y, bw, bh), assetId, crop: { x: 0.5, y: 0.5, zoom: 1 }, frame: 'theme', alt: '', slot: null }
+    const el: ImageElement = { type: 'image', id: uid('el'), box: newBox(x, y, bw, bh), assetId, crop: photoCrop(a?.focus), frame: 'theme', alt: '', slot: null }
     apply(b => addElement(b, page.id, el)); setSelectedId(el.id); setTab('design')
   }
 
@@ -167,7 +167,7 @@ export function Editor({ bookId }: { bookId: string }) {
   function usePhoto(assetId: string) {
     if (!page) return
     if (selected?.type === 'image') {
-      apply(b => updateElement(b, page.id, selected.id, { assetId, crop: { x: 0.5, y: 0.5, zoom: 1 } } as Partial<ImageElement>))
+      apply(b => updateElement(b, page.id, selected.id, { assetId, crop: photoCrop(assets[assetId]?.focus) } as Partial<ImageElement>))
       setTab('design')
     } else addPhoto(assetId)
   }
@@ -296,7 +296,7 @@ export function Editor({ bookId }: { bookId: string }) {
           onChangeBox={(id, box, key) => apply(b => updateElement(b, page.id, id, { box }), key)}
           onChangeCrop={(id, crop, key) => apply(b => updateElement(b, page.id, id, { crop } as Partial<ImageElement>), key)}
           onDropAsset={(assetId, targetId, at) => {
-            if (targetId) apply(b => updateElement(b, page.id, targetId, { assetId, crop: { x: 0.5, y: 0.5, zoom: 1 } } as Partial<ImageElement>))
+            if (targetId) apply(b => updateElement(b, page.id, targetId, { assetId, crop: photoCrop(assets[assetId]?.focus) } as Partial<ImageElement>))
             else addPhoto(assetId, at)
           }} />
         <AiBar busy={busy || agentRunning} onSubmit={async t => askChat(t)} scope={selected ? 'the selected item' : pageIndex === 0 ? 'the cover' : `page ${pageIndex}`} ai={design.ai} />
