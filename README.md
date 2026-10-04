@@ -49,8 +49,6 @@ Books (JSONB) and photo metadata live in PostgreSQL (`DATABASE_URL`, defaults to
 `localhost:5432`). Original photos, previews/thumbnails and exported PDFs live in an S3 bucket on
 [RustFS](https://github.com/rustfs/rustfs) (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`; defaults
 match compose, console at http://localhost:9001). Any S3-compatible store works. The app keeps no state on disk.
-Coming from the earlier SQLite version? Import books and photos once with
-`uv run python -m memory_book.migrate_sqlite data`.
 
 Development: `uv run memory-book` + `cd web && npm run dev` (Vite on :5173 proxies `/api` and `/static`).
 

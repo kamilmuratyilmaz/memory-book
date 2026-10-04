@@ -108,7 +108,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <p>This document gives the components of the Memory Book system, the chat editing function (AG-UI), the data storage and the AI observability.</p>
     <p>The language of this document agrees with ASD-STE100 Simplified Technical English.</p>
     <div class="meta">
-      <span>Issue 3</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>System version: 0.1.0</span><span>AG-UI protocol 1.0</span>
+      <span>Issue 4</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>System version: 0.1.0</span><span>AG-UI protocol 1.0</span>
     </div>
   </div>
 </header>
@@ -150,6 +150,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
   <h2><span class="num">0</span>Change record</h2>
   <div class="table-wrap"><table>
     <tr><th>Issue</th><th>Changes</th></tr>
+    <tr><td>Issue 4</td><td>The one-time tool that moved data from an older SQLite installation is removed. Paragraph 8.7 and its row in paragraph 3.2 are removed.</td></tr>
     <tr><td>Issue 3</td><td>The app uses LiteLLM to connect to the AI model. The user can select a model from many providers. The default model is <code>gemini/gemini-3.8-flash</code>. Paragraph 2.4 is new. Sections 3, 4.9, 5, 8, 9 and 10 are changed. The reader uses the page-turn animation on phones, and the full-screen mode now fills the screen.</td></tr>
     <tr><td>Issue 2</td><td>The app reads settings from a <code>.env</code> file (section 9). The six limits in Issue 1, paragraph 4.7, are removed. The chat now streams the reply and the reasoning. It asks for approval before large changes. The server keeps the chat threads. The state deltas are smaller. <code>RUN_FINISHED</code> contains the token usage. The agent sends activity and messages-snapshot events. Sections 4, 5, 6, 7, 8 and 10 are new or changed.</td></tr>
     <tr><td>Issue 1</td><td>First issue.</td></tr>
@@ -272,7 +273,6 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <tr><td><code>storage.py</code></td><td>PostgreSQL access with a connection pool. S3 access with boto3. Image processing. Thread storage.</td></tr>
     <tr><td><code>pdf.py</code></td><td>The PDF renderer. It draws vector text with embedded fonts and photos at 300 dpi.</td></tr>
     <tr><td><code>app.py</code></td><td>The HTTP routes, the background jobs and the static file server.</td></tr>
-    <tr><td><code>migrate_sqlite.py</code></td><td>A one-time tool. It moves data from an older SQLite installation.</td></tr>
   </table></div>
 
   <h3 id="web">3.3 Web modules (<code>web/src/</code>)</h3>
@@ -617,13 +617,6 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Type <code>npx tsc -b</code> and <code>npm run lint</code>.</li>
   </ol>
 
-  <h3>8.7 Move data from an older SQLite installation</h3>
-  <div class="caution callout"><strong>CAUTION</strong>An older Postgres volume does not contain the <code>mlflow</code> database. Make it before you start the <code>mlflow</code> service.</div>
-  <ol class="steps">
-    <li>Type <code>docker compose exec db psql -U memory_book -c "CREATE DATABASE mlflow"</code>.</li>
-    <li>Type <code>uv run python -m memory_book.migrate_sqlite data</code>.</li>
-    <li>Make sure that the tool shows the number of books.</li>
-  </ol>
 </section>
 
 <!-- 9 -->
