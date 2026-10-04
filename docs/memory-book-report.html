@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memory Book Technical Description</title>
-<meta name="description" content="Components, chat editing (AG-UI), storage and observability of the Memory Book system. Issue 2. Written in ASD-STE100 Simplified Technical English.">
+<meta name="description" content="Components, chat editing (AG-UI), storage and observability of the Memory Book system. Issue 1. Written in ASD-STE100 Simplified Technical English.">
 <style>
 :root {
   --bg: #f6f7f4; --surface: #ffffff; --ink: #1a2320; --muted: #5d6963; --line: #d6dcd4;
@@ -108,7 +108,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <p>This document gives the components of the Memory Book system, the chat editing function (AG-UI), the data storage and the AI observability.</p>
     <p>The language of this document agrees with ASD-STE100 Simplified Technical English.</p>
     <div class="meta">
-      <span>Issue 4</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>System version: 0.1.0</span><span>AG-UI protocol 1.0</span>
+      <span>Issue 1</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>System version: 0.1.0</span><span>AG-UI protocol 1.0</span>
     </div>
   </div>
 </header>
@@ -118,7 +118,15 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
   <ol>
     <li><a href="#changes">0 Change record</a></li>
     <li><a href="#intro">1 Introduction</a></li>
+    <li class="sub"><a href="#intro-scope">1.1 Scope</a></li>
+    <li class="sub"><a href="#intro-rules">1.2 Writing rules</a></li>
+    <li class="sub"><a href="#intro-terms">1.3 Terms</a></li>
     <li><a href="#system">2 System description</a></li>
+    <li class="sub"><a href="#system-function">2.1 Function</a></li>
+    <li class="sub"><a href="#system-architecture">2.2 Architecture</a></li>
+    <li class="sub"><a href="#system-flow">2.3 Data flow for a new book</a></li>
+    <li class="sub"><a href="#system-models">2.4 AI models (LiteLLM)</a></li>
+    <li class="sub"><a href="#system-faces">2.5 Face-aware photo crops</a></li>
     <li><a href="#components">3 Components</a></li>
     <li class="sub"><a href="#services">3.1 Runtime services</a></li>
     <li class="sub"><a href="#server">3.2 Server modules</a></li>
@@ -136,9 +144,20 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <li class="sub"><a href="#agui-modes">4.9 AI modes</a></li>
     <li class="sub"><a href="#agui-limits">4.10 Limits</a></li>
     <li><a href="#mlflow">5 AI observability (MLflow)</a></li>
+    <li class="sub"><a href="#mlflow-traces">5.1 Trace structure</a></li>
+    <li class="sub"><a href="#mlflow-data">5.2 Recorded data</a></li>
     <li><a href="#storage">6 Data storage</a></li>
+    <li class="sub"><a href="#storage-postgres">6.1 PostgreSQL</a></li>
+    <li class="sub"><a href="#storage-objects">6.2 Object storage</a></li>
     <li><a href="#api">7 API reference</a></li>
     <li><a href="#procedures">8 Procedures</a></li>
+    <li class="sub"><a href="#proc-start">8.1 Start the system</a></li>
+    <li class="sub"><a href="#proc-new-book">8.2 Make a new book</a></li>
+    <li class="sub"><a href="#proc-chat">8.3 Change a book with the chat</a></li>
+    <li class="sub"><a href="#proc-approve">8.4 Approve or cancel a change</a></li>
+    <li class="sub"><a href="#proc-export">8.5 Export a PDF file</a></li>
+    <li class="sub"><a href="#proc-tests">8.6 Do the tests</a></li>
+    <li class="sub"><a href="#proc-faces">8.7 Center photos on faces</a></li>
     <li><a href="#config">9 Configuration</a></li>
     <li><a href="#limits">10 Known limits</a></li>
   </ol>
@@ -150,9 +169,6 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
   <h2><span class="num">0</span>Change record</h2>
   <div class="table-wrap"><table>
     <tr><th>Issue</th><th>Changes</th></tr>
-    <tr><td>Issue 4</td><td>The one-time tool that moved data from an older SQLite installation is removed. Paragraph 8.7 and its row in paragraph 3.2 are removed.</td></tr>
-    <tr><td>Issue 3</td><td>The app uses LiteLLM to connect to the AI model. The user can select a model from many providers. The default model is <code>gemini/gemini-3.8-flash</code>. Paragraph 2.4 is new. Sections 3, 4.9, 5, 8, 9 and 10 are changed. The reader uses the page-turn animation on phones, and the full-screen mode now fills the screen.</td></tr>
-    <tr><td>Issue 2</td><td>The app reads settings from a <code>.env</code> file (section 9). The six limits in Issue 1, paragraph 4.7, are removed. The chat now streams the reply and the reasoning. It asks for approval before large changes. The server keeps the chat threads. The state deltas are smaller. <code>RUN_FINISHED</code> contains the token usage. The agent sends activity and messages-snapshot events. Sections 4, 5, 6, 7, 8 and 10 are new or changed.</td></tr>
     <tr><td>Issue 1</td><td>First issue.</td></tr>
   </table></div>
 </section>
@@ -160,17 +176,17 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
 <!-- 1 -->
 <section id="intro">
   <h2><span class="num">1</span>Introduction</h2>
-  <h3>1.1 Scope</h3>
+  <h3 id="intro-scope">1.1 Scope</h3>
   <p>The Memory Book system makes personal photo books. The user gives photos and notes. The AI writes the text and puts the pages in order. The user then changes the book, reads the book and exports the book as a PDF file.</p>
   <p>This document is for software engineers and operators. It does not give user instructions for the editor controls.</p>
-  <h3>1.2 Writing rules in this document</h3>
+  <h3 id="intro-rules">1.2 Writing rules in this document</h3>
   <ul class="list">
     <li>Sentences in procedures have a maximum of 20 words. Descriptive sentences have a maximum of 25 words.</li>
     <li>Each step in a procedure has one instruction. Instructions use the imperative form.</li>
     <li>Words in <code>code font</code> are technical names. Words in quotation marks are labels on the screen. These names do not change.</li>
     <li>A WARNING tells you about a risk to data or security. A CAUTION tells you about a risk to the system.</li>
   </ul>
-  <h3>1.3 Terms</h3>
+  <h3 id="intro-terms">1.3 Terms</h3>
   <div class="table-wrap"><table>
     <tr><th>Term</th><th>Meaning in this document</th></tr>
     <tr><td>Book</td><td>One <code>MemoryBook</code> JSON document. It has the pages, the theme and the page size.</td></tr>
@@ -191,10 +207,10 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
 <!-- 2 -->
 <section id="system">
   <h2><span class="num">2</span>System description</h2>
-  <h3>2.1 Function</h3>
+  <h3 id="system-function">2.1 Function</h3>
   <p>The system has one document model. The editor, the reader and the PDF renderer use the same document. Thus, the screen and the printed page agree.</p>
   <p>The AI makes structured data only. The AI does not write user interface code. A layout engine in code calculates all positions.</p>
-  <h3>2.2 Architecture</h3>
+  <h3 id="system-architecture">2.2 Architecture</h3>
   <figure>
     <svg viewBox="0 0 820 400" width="100%" role="img" aria-labelledby="arch-title arch-desc">
       <title id="arch-title">System architecture</title>
@@ -226,7 +242,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     </svg>
     <figcaption>Figure 1. The browser, the app and the services in <code>docker-compose.yml</code>. The AI model providers are external.</figcaption>
   </figure>
-  <h3>2.3 Data flow for a new book</h3>
+  <h3 id="system-flow">2.3 Data flow for a new book</h3>
   <ol class="steps">
     <li>The user uploads photos. The app keeps the original file and makes a preview and a thumbnail.</li>
     <li>The AI reads the photos and the notes. It makes a <code>MemoryAnalysis</code>: events, captions and photo importance.</li>
@@ -235,7 +251,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <li>The layout engine changes the plan into pages with positioned elements.</li>
     <li>The app checks the book against the schema and records it in PostgreSQL.</li>
   </ol>
-  <h3>2.4 AI models (LiteLLM)</h3>
+  <h3 id="system-models">2.4 AI models (LiteLLM)</h3>
   <p>The app sends all AI requests through LiteLLM. LiteLLM connects to many providers with one interface, for example Google, OpenAI, Anthropic and local Ollama models.</p>
   <ul class="list">
     <li>Each request has a strict JSON schema. All fields are necessary, and the theme fields accept only the real theme names.</li>
@@ -244,6 +260,17 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <li>LiteLLM uses its local price list. It does not download data when the app starts.</li>
   </ul>
   <div class="callout warning"><strong>WARNING</strong>LiteLLM versions 1.82.7 and 1.82.8 contained malicious code (advisory MAL-2026-2144). The project uses version 1.104.0 exactly. The file <code>uv.lock</code> contains the hash of each package file. Before you change the version, examine the advisories in the OSV database.</div>
+
+  <h3 id="system-faces">2.5 Face-aware photo crops</h3>
+  <p>A photo frame often has a different shape from the photo. The renderer then shows only a part of the photo. The system keeps the faces of people in that part.</p>
+  <ul class="list">
+    <li>When the user uploads a photo, the server finds the faces in the photo. It uses the YuNet face detector (OpenCV). The detector runs on the server and does not use the network.</li>
+    <li>The server keeps the center of the main faces as the <code>focus</code> of the photo. It ignores small faces in the background.</li>
+    <li>New layouts, AI revisions and photos that the user adds in the editor use this center for the crop.</li>
+    <li>If the photo has no faces, the crop is a little above the center of the photo.</li>
+    <li>The editor can center one photo or all photos of a book on their faces again (paragraph 8.7).</li>
+  </ul>
+  <div class="note callout"><strong>NOTE</strong>The server examines the photos that do not have a <code>focus</code> one time, when it starts. If the detector fails for a photo, the upload continues. The server tries that photo again at the next start.</div>
 </section>
 
 <!-- 3 -->
@@ -270,7 +297,9 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <tr><td><code>pipeline.py</code></td><td>The generation stages, the plan checks and the operation logic for revisions.</td></tr>
     <tr><td><code>agui.py</code></td><td>The AG-UI agent. It streams events, asks for approval, writes the thread and calculates the JSON Patch.</td></tr>
     <tr><td><code>tracing.py</code></td><td>MLflow set-up, session names, token usage records, the usage meter for each run, and content redaction.</td></tr>
-    <tr><td><code>storage.py</code></td><td>PostgreSQL access with a connection pool. S3 access with boto3. Image processing. Thread storage.</td></tr>
+    <tr><td><code>storage.py</code></td><td>PostgreSQL access with a connection pool. S3 access with boto3. Image processing. Thread storage. The face scan of older photos.</td></tr>
+    <tr><td><code>faces.py</code></td><td>Finds the faces in a photo and gives the center of the main faces (paragraph 2.5).</td></tr>
+    <tr><td><code>models/</code></td><td>The YuNet face detection model and its MIT license.</td></tr>
     <tr><td><code>pdf.py</code></td><td>The PDF renderer. It draws vector text with embedded fonts and photos at 300 dpi.</td></tr>
     <tr><td><code>app.py</code></td><td>The HTTP routes, the background jobs and the static file server.</td></tr>
   </table></div>
@@ -284,7 +313,7 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
     <tr><td><code>create/Create.tsx</code></td><td>The form for a new book and the progress screen.</td></tr>
     <tr><td><code>editor/Editor.tsx</code></td><td>The editor frame: toolbar, keyboard commands, export dialog and the connection to the chat.</td></tr>
     <tr><td><code>editor/Canvas.tsx</code></td><td>The page canvas. It moves, resizes and crops elements. It shows guides and text overflow.</td></tr>
-    <tr><td><code>editor/Inspector.tsx</code></td><td>The properties panel: Chat, Page or Selection, Photos and Book tabs.</td></tr>
+    <tr><td><code>editor/Inspector.tsx</code></td><td>The properties panel: Chat, Page or Selection, Photos and Book tabs. It has the controls that center photos on faces.</td></tr>
     <tr><td><code>editor/ChatPanel.tsx</code></td><td>The AG-UI client: messages, reasoning, checklist, approval card and token count. The app loads it only in the editor.</td></tr>
     <tr><td><code>editor/PageList.tsx</code></td><td>The page thumbnails. The user can move pages with the mouse or the keyboard.</td></tr>
     <tr><td><code>editor/state.ts</code></td><td>Undo and redo history, and operations on the document.</td></tr>
@@ -296,7 +325,8 @@ svg text { font-family: system-ui, -apple-system, sans-serif; }
   <div class="table-wrap"><table>
     <tr><th>Suite</th><th>Tests</th><th>Subject</th></tr>
     <tr><td><code>tests/test_backend.py</code></td><td>29</td><td>Model, layout, AI checks and fallback, LiteLLM requests and schemas, revisions, storage, PDF output for four page sizes, API.</td></tr>
-    <tr><td><code>tests/test_agui.py</code></td><td>9</td><td>Event order, streamed reply and reasoning, token usage, approval, cancel, thread storage, patches, errors.</td></tr>
+    <tr><td><code>tests/test_agui.py</code></td><td>10</td><td>Event order, streamed reply and reasoning, token usage, approval, cancel, thread storage, patches, errors.</td></tr>
+    <tr><td><code>tests/test_faces.py</code></td><td>4</td><td>Face center calculation, the real detector, the stored <code>focus</code>, face-aware layout crops, a failed detection.</td></tr>
     <tr><td><code>tests/test_tracing.py</code></td><td>2</td><td>MLflow spans, token totals, sessions, redaction. It uses the live MLflow service.</td></tr>
     <tr><td><code>web/src/**/*.test.ts(x)</code></td><td>11</td><td>History, document operations, autosave, reader spreads, parity with Python.</td></tr>
   </table></div>
@@ -468,7 +498,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
 <section id="mlflow">
   <h2><span class="num">5</span>AI observability (MLflow)</h2>
   <p>The app sends traces to MLflow when <code>MLFLOW_TRACKING_URI</code> is set. Without this value, the trace functions do nothing.</p>
-  <h3>5.1 Trace structure</h3>
+  <h3 id="mlflow-traces">5.1 Trace structure</h3>
   <div class="grid2">
     <div class="card">
       <h4>Book generation</h4>
@@ -490,7 +520,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
       <p>An approval run has only <code>agent_run</code> and the TOOL spans. The attribute <code>resume</code> is <code>true</code>.</p>
     </div>
   </div>
-  <h3>5.2 Recorded data</h3>
+  <h3 id="mlflow-data">5.2 Recorded data</h3>
   <div class="table-wrap"><table>
     <tr><th>Data</th><th>Location</th></tr>
     <tr><td>Token usage</td><td>Each <code>CHAT_MODEL</code> span has <code>mlflow.chat.tokenUsage</code>: input, output, cache read and cache write tokens. MLflow adds the values for each trace.</td></tr>
@@ -508,14 +538,14 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
 <!-- 6 -->
 <section id="storage">
   <h2><span class="num">6</span>Data storage</h2>
-  <h3>6.1 PostgreSQL (database <code>memory_book</code>)</h3>
+  <h3 id="storage-postgres">6.1 PostgreSQL (database <code>memory_book</code>)</h3>
   <div class="table-wrap"><table>
     <tr><th>Table</th><th>Columns</th><th>Notes</th></tr>
     <tr><td><code>books</code></td><td><code>id, title, doc JSONB, version, created_at, updated_at</code></td><td>The <code>version</code> value prevents lost changes. A save with an old version gets HTTP 409.</td></tr>
-    <tr><td><code>assets</code></td><td><code>id, filename, width, height, taken_at, description, ext, created_at</code></td><td>Photo data. The AI description helps later revisions.</td></tr>
+    <tr><td><code>assets</code></td><td><code>id, filename, width, height, taken_at, description, ext, created_at, focus JSONB</code></td><td>Photo data. The AI description helps later revisions. <code>focus</code> is the center of the faces: <code>{"x", "y", "faces"}</code>. <code>{"faces": 0}</code> means that the photo has no faces. An empty value means that the server did not examine the photo yet.</td></tr>
     <tr><td><code>agent_threads</code></td><td><code>thread_id, messages JSONB, pending JSONB, updated_at</code></td><td>Chat threads. <code>pending</code> contains the open interrupt and its stored plan.</td></tr>
   </table></div>
-  <h3>6.2 Object storage (bucket <code>memory-book</code>)</h3>
+  <h3 id="storage-objects">6.2 Object storage (bucket <code>memory-book</code>)</h3>
   <div class="table-wrap"><table>
     <tr><th>Key</th><th>Content</th></tr>
     <tr><td><code>assets/&lt;id&gt;/original.&lt;ext&gt;</code></td><td>The original file, without changes. The PDF renderer uses it.</td></tr>
@@ -556,7 +586,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
 <section id="procedures">
   <h2><span class="num">8</span>Procedures</h2>
 
-  <h3>8.1 Start the system</h3>
+  <h3 id="proc-start">8.1 Start the system</h3>
   <div class="callout warning"><strong>WARNING</strong>The default passwords of PostgreSQL and RustFS are public. Change them before you connect the system to a public network.</div>
   <ol class="steps">
     <li>Install Docker with Docker Compose.</li>
@@ -567,7 +597,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Open <code>http://localhost:8000</code> in a browser.</li>
   </ol>
 
-  <h3>8.2 Make a new book</h3>
+  <h3 id="proc-new-book">8.2 Make a new book</h3>
   <ol class="steps">
     <li>Click “Start a new book”.</li>
     <li>Upload the photos.</li>
@@ -577,7 +607,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Wait until the editor opens.</li>
   </ol>
 
-  <h3>8.3 Change a book with the chat</h3>
+  <h3 id="proc-chat">8.3 Change a book with the chat</h3>
   <ol class="steps">
     <li>Open the book in the editor.</li>
     <li>Select the “Chat” tab.</li>
@@ -588,7 +618,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>If you do not like the result, click “Undo these changes”.</li>
   </ol>
 
-  <h3>8.4 Approve or cancel a large change</h3>
+  <h3 id="proc-approve">8.4 Approve or cancel a large change</h3>
   <div class="callout caution"><strong>CAUTION</strong>Approved changes can remove pages. Read the list of proposed changes before you click “Apply changes”.</div>
   <ol class="steps">
     <li>Read the question in the approval card.</li>
@@ -598,7 +628,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Optional: after you apply, click “Undo these changes” to go back.</li>
   </ol>
 
-  <h3>8.5 Export a PDF file</h3>
+  <h3 id="proc-export">8.5 Export a PDF file</h3>
   <ol class="steps">
     <li>Click “Export PDF”.</li>
     <li>Select “For reading and sharing” or “For a print shop”.</li>
@@ -607,7 +637,7 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Click “Download PDF”.</li>
   </ol>
 
-  <h3>8.6 Do the tests</h3>
+  <h3 id="proc-tests">8.6 Do the tests</h3>
   <div class="caution callout"><strong>CAUTION</strong>The Python tests need the services <code>db</code>, <code>rustfs</code> and <code>mlflow</code>. Start them before you start the tests.</div>
   <ol class="steps">
     <li>Type <code>docker compose up -d db rustfs mlflow</code>.</li>
@@ -616,6 +646,20 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Type <code>npm test</code>.</li>
     <li>Type <code>npx tsc -b</code> and <code>npm run lint</code>.</li>
   </ol>
+
+  <h3 id="proc-faces">8.7 Center photos on faces</h3>
+  <p>To center one photo:</p>
+  <ol class="steps">
+    <li>Click the photo on the page.</li>
+    <li>In the Selection tab, click “Centre on the face” or “Centre on N faces”.</li>
+  </ol>
+  <p>To center all photos of the book:</p>
+  <ol class="steps">
+    <li>Open the Book tab.</li>
+    <li>In “Faces in photos”, read the number of photos that are not centered.</li>
+    <li>Click “Centre photos on faces”.</li>
+  </ol>
+  <div class="note callout"><strong>NOTE</strong>The zoom of each photo does not change. To cancel the change, use Undo one time.</div>
 
 </section>
 
@@ -655,7 +699,9 @@ data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"s
     <li>Background jobs and chat runs use threads in the app process. If you start more than one app process, use a job queue.</li>
     <li>The app sends photos through its own process. For high traffic, use signed S3 links.</li>
     <li>The map page shows a decorative map. It does not show real map data.</li>
-    <li>The database schema is made at start-up. A schema change will need a migration tool.</li>
+    <li>The database schema is made at start-up with statements that you can do again safely, for example <code>ADD COLUMN IF NOT EXISTS</code>. A larger schema change will need a migration tool.</li>
+    <li>The face detector does not always find faces in profile or very small faces. These photos keep the usual crop.</li>
+    <li>A crop cannot show more than the frame. If a tall photo is in a wide frame, the top of a head can be cut. The user can move the photo in the editor.</li>
     <li>For the limits of the chat, refer to paragraph 4.10.</li>
   </ul>
 </section>
