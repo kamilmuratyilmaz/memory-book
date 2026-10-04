@@ -1,0 +1,127 @@
+{
+  "fonts": [
+    { "name": "Playfair Display", "file": "PlayfairDisplay", "italic": true },
+    { "name": "Lora", "file": "Lora", "italic": true },
+    { "name": "Cormorant Garamond", "file": "CormorantGaramond", "italic": true },
+    { "name": "EB Garamond", "file": "EBGaramond", "italic": true },
+    { "name": "Inter", "file": "Inter", "italic": true },
+    { "name": "Josefin Sans", "file": "JosefinSans", "italic": true },
+    { "name": "Caveat", "file": "Caveat", "italic": false }
+  ],
+  "themes": {
+    "editorial": {
+      "name": "Editorial",
+      "description": "Magazine-like serif typography with generous whitespace.",
+      "colors": { "paper": "#F7F4EE", "text": "#1B1A17", "muted": "#6F6A61", "accent": "#9C2F1E", "rule": "#D8D1C4" },
+      "texture": false,
+      "margins": { "top": 14, "side": 13, "bottom": 18 },
+      "image": { "frame": "none", "radius": 0, "tone": "none", "tilt": 0, "tape": false },
+      "ornament": "line",
+      "text": {
+        "title":    { "fontFamily": "Playfair Display", "fontSize": 30, "bold": true, "lineHeight": 1.05, "align": "left", "color": "text" },
+        "subtitle": { "fontFamily": "Lora", "fontSize": 10.5, "italic": true, "lineHeight": 1.35, "align": "left", "color": "muted" },
+        "heading":  { "fontFamily": "Playfair Display", "fontSize": 18, "lineHeight": 1.15, "align": "left", "color": "text" },
+        "body":     { "fontFamily": "Lora", "fontSize": 9, "lineHeight": 1.6, "align": "left", "color": "text" },
+        "caption":  { "fontFamily": "Lora", "fontSize": 7.5, "italic": true, "lineHeight": 1.4, "align": "left", "color": "muted" },
+        "quote":    { "fontFamily": "Playfair Display", "fontSize": 18, "italic": true, "lineHeight": 1.3, "align": "center", "color": "text" },
+        "meta":     { "fontFamily": "Inter", "fontSize": 6.5, "bold": true, "uppercase": true, "letterSpacing": 0.18, "lineHeight": 1.3, "align": "left", "color": "accent" }
+      },
+      "pageNumber": { "fontFamily": "Lora", "fontSize": 7, "color": "muted" }
+    },
+    "minimal": {
+      "name": "Minimal",
+      "description": "Quiet sans-serif, white space and photographs first.",
+      "colors": { "paper": "#FBFAF8", "text": "#1F1E1C", "muted": "#8A867E", "accent": "#1F1E1C", "rule": "#E2DED6" },
+      "texture": false,
+      "margins": { "top": 15, "side": 14, "bottom": 18 },
+      "image": { "frame": "none", "radius": 0, "tone": "none", "tilt": 0, "tape": false },
+      "ornament": "line",
+      "text": {
+        "title":    { "fontFamily": "Inter", "fontSize": 26, "bold": true, "lineHeight": 1.05, "letterSpacing": -0.02, "align": "left", "color": "text" },
+        "subtitle": { "fontFamily": "Inter", "fontSize": 9.5, "lineHeight": 1.4, "align": "left", "color": "muted" },
+        "heading":  { "fontFamily": "Inter", "fontSize": 14, "bold": true, "lineHeight": 1.2, "letterSpacing": -0.01, "align": "left", "color": "text" },
+        "body":     { "fontFamily": "Inter", "fontSize": 8.5, "lineHeight": 1.6, "align": "left", "color": "text" },
+        "caption":  { "fontFamily": "Inter", "fontSize": 6.8, "lineHeight": 1.45, "align": "left", "color": "muted" },
+        "quote":    { "fontFamily": "Inter", "fontSize": 15, "lineHeight": 1.35, "letterSpacing": -0.01, "align": "left", "color": "text" },
+        "meta":     { "fontFamily": "Inter", "fontSize": 6, "bold": true, "uppercase": true, "letterSpacing": 0.2, "lineHeight": 1.3, "align": "left", "color": "muted" }
+      },
+      "pageNumber": { "fontFamily": "Inter", "fontSize": 6.5, "color": "muted" }
+    },
+    "travel": {
+      "name": "Travel Journal",
+      "description": "Field-notebook paper, bordered prints and handwritten notes.",
+      "colors": { "paper": "#F2ECDF", "text": "#2B2A26", "muted": "#7C7466", "accent": "#2F5D62", "rule": "#CFC5B0" },
+      "texture": true,
+      "margins": { "top": 13, "side": 12, "bottom": 17 },
+      "image": { "frame": "mat", "radius": 0, "tone": "none", "tilt": 0, "tape": false },
+      "ornament": "dot",
+      "text": {
+        "title":    { "fontFamily": "Josefin Sans", "fontSize": 26, "bold": true, "uppercase": true, "letterSpacing": 0.06, "lineHeight": 1.1, "align": "left", "color": "text" },
+        "subtitle": { "fontFamily": "Caveat", "fontSize": 15, "lineHeight": 1.2, "align": "left", "color": "accent" },
+        "heading":  { "fontFamily": "Josefin Sans", "fontSize": 13, "bold": true, "uppercase": true, "letterSpacing": 0.08, "lineHeight": 1.25, "align": "left", "color": "text" },
+        "body":     { "fontFamily": "Lora", "fontSize": 8.8, "lineHeight": 1.6, "align": "left", "color": "text" },
+        "caption":  { "fontFamily": "Caveat", "fontSize": 11, "lineHeight": 1.15, "align": "left", "color": "accent" },
+        "quote":    { "fontFamily": "Caveat", "fontSize": 22, "lineHeight": 1.15, "align": "center", "color": "text" },
+        "meta":     { "fontFamily": "Josefin Sans", "fontSize": 6.5, "bold": true, "uppercase": true, "letterSpacing": 0.2, "lineHeight": 1.3, "align": "left", "color": "accent" }
+      },
+      "pageNumber": { "fontFamily": "Josefin Sans", "fontSize": 7, "color": "muted" }
+    },
+    "scrapbook": {
+      "name": "Scrapbook",
+      "description": "Playful polaroids, tape and handwriting.",
+      "colors": { "paper": "#F4EFE6", "text": "#2E2A25", "muted": "#8C7F70", "accent": "#C8553D", "rule": "#D9CBB8" },
+      "texture": true,
+      "margins": { "top": 13, "side": 12, "bottom": 17 },
+      "image": { "frame": "polaroid", "radius": 0, "tone": "none", "tilt": 2.2, "tape": true },
+      "ornament": "diamond",
+      "text": {
+        "title":    { "fontFamily": "Caveat", "fontSize": 42, "bold": true, "lineHeight": 1.0, "align": "center", "color": "text" },
+        "subtitle": { "fontFamily": "Josefin Sans", "fontSize": 8, "bold": true, "uppercase": true, "letterSpacing": 0.2, "lineHeight": 1.4, "align": "center", "color": "accent" },
+        "heading":  { "fontFamily": "Caveat", "fontSize": 24, "bold": true, "lineHeight": 1.05, "align": "left", "color": "text" },
+        "body":     { "fontFamily": "Lora", "fontSize": 8.8, "lineHeight": 1.6, "align": "left", "color": "text" },
+        "caption":  { "fontFamily": "Caveat", "fontSize": 12, "lineHeight": 1.1, "align": "center", "color": "text" },
+        "quote":    { "fontFamily": "Caveat", "fontSize": 24, "lineHeight": 1.15, "align": "center", "color": "text" },
+        "meta":     { "fontFamily": "Josefin Sans", "fontSize": 6.5, "bold": true, "uppercase": true, "letterSpacing": 0.2, "lineHeight": 1.3, "align": "left", "color": "accent" }
+      },
+      "pageNumber": { "fontFamily": "Caveat", "fontSize": 11, "color": "muted" }
+    },
+    "vintage": {
+      "name": "Vintage",
+      "description": "Aged paper, warm sepia prints and classic Garamond.",
+      "colors": { "paper": "#EEE5D2", "text": "#3A2F25", "muted": "#857561", "accent": "#8B5E34", "rule": "#C9B99A" },
+      "texture": true,
+      "margins": { "top": 15, "side": 14, "bottom": 19 },
+      "image": { "frame": "mat", "radius": 0, "tone": "sepia", "tilt": 0, "tape": false },
+      "ornament": "diamond",
+      "text": {
+        "title":    { "fontFamily": "Cormorant Garamond", "fontSize": 34, "bold": true, "lineHeight": 1.0, "align": "center", "color": "text" },
+        "subtitle": { "fontFamily": "EB Garamond", "fontSize": 10.5, "italic": true, "lineHeight": 1.35, "align": "center", "color": "muted" },
+        "heading":  { "fontFamily": "Cormorant Garamond", "fontSize": 20, "bold": true, "lineHeight": 1.1, "align": "center", "color": "text" },
+        "body":     { "fontFamily": "EB Garamond", "fontSize": 10, "lineHeight": 1.5, "align": "justify", "color": "text" },
+        "caption":  { "fontFamily": "EB Garamond", "fontSize": 8, "italic": true, "lineHeight": 1.35, "align": "center", "color": "muted" },
+        "quote":    { "fontFamily": "Cormorant Garamond", "fontSize": 20, "italic": true, "lineHeight": 1.25, "align": "center", "color": "text" },
+        "meta":     { "fontFamily": "EB Garamond", "fontSize": 7, "uppercase": true, "letterSpacing": 0.22, "lineHeight": 1.3, "align": "center", "color": "accent" }
+      },
+      "pageNumber": { "fontFamily": "EB Garamond", "fontSize": 8, "color": "muted" }
+    },
+    "romantic": {
+      "name": "Romantic",
+      "description": "Soft blush tones and flowing italic serifs.",
+      "colors": { "paper": "#FBF4F1", "text": "#4A3539", "muted": "#9B8287", "accent": "#B76E79", "rule": "#E8D3D1" },
+      "texture": false,
+      "margins": { "top": 15, "side": 14, "bottom": 19 },
+      "image": { "frame": "none", "radius": 1.2, "tone": "none", "tilt": 0, "tape": false },
+      "ornament": "diamond",
+      "text": {
+        "title":    { "fontFamily": "Cormorant Garamond", "fontSize": 38, "italic": true, "lineHeight": 1.0, "align": "center", "color": "text" },
+        "subtitle": { "fontFamily": "Josefin Sans", "fontSize": 7, "uppercase": true, "letterSpacing": 0.25, "lineHeight": 1.4, "align": "center", "color": "accent" },
+        "heading":  { "fontFamily": "Cormorant Garamond", "fontSize": 22, "italic": true, "lineHeight": 1.1, "align": "center", "color": "text" },
+        "body":     { "fontFamily": "Lora", "fontSize": 8.8, "lineHeight": 1.65, "align": "center", "color": "text" },
+        "caption":  { "fontFamily": "Cormorant Garamond", "fontSize": 10, "italic": true, "lineHeight": 1.3, "align": "center", "color": "muted" },
+        "quote":    { "fontFamily": "Cormorant Garamond", "fontSize": 22, "italic": true, "lineHeight": 1.25, "align": "center", "color": "text" },
+        "meta":     { "fontFamily": "Josefin Sans", "fontSize": 6.5, "uppercase": true, "letterSpacing": 0.25, "lineHeight": 1.3, "align": "center", "color": "accent" }
+      },
+      "pageNumber": { "fontFamily": "Cormorant Garamond", "fontSize": 9, "color": "muted" }
+    }
+  }
+}

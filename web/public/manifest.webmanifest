@@ -1,0 +1,10 @@
+{
+  "name": "Memory Book",
+  "short_name": "Memory Book",
+  "start_url": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "background_color": "#1a2823",
+  "theme_color": "#24362f",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

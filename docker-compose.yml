@@ -1,0 +1,95 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: memory_book
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-memory_book}
+      POSTGRES_DB: memory_book
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"  # for local development and tests; remove in production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memory_book -d memory_book"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rustfs:  # S3-compatible object storage for photos and exported PDFs
+    image: rustfs/rustfs:1.0.1
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}  # change both before exposing beyond localhost
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+    volumes:
+      - objects:/data
+    ports:
+      - "127.0.0.1:9000:9000"  # S3 API, for local development and tests
+      - "127.0.0.1:9001:9001"  # web console: http://localhost:9001
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  mlflow:  # AI observability: traces of every generation and chat run, with token usage per session
+    build:
+      context: docker
+      dockerfile: mlflow.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-rustfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      MLFLOW_S3_ENDPOINT_URL: http://rustfs:9000
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql://memory_book:${POSTGRES_PASSWORD:-memory_book}@db:5432/mlflow
+      --artifacts-destination s3://memory-book/mlflow
+      --allowed-hosts mlflow:5000,localhost:5000,127.0.0.1:5000
+    ports:
+      - "127.0.0.1:5000:5000"  # MLflow UI: http://localhost:5000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+    env_file:  # model choice and provider keys (GEMINI_API_KEY, OPENAI_API_KEY, ...); see .env.example
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://memory_book:${POSTGRES_PASSWORD:-memory_book}@db:5432/memory_book
+      S3_ENDPOINT: http://rustfs:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      S3_BUCKET: memory-book
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_TRACE_CONTENT: ${MLFLOW_TRACE_CONTENT:-true}  # false = record steps and token usage, not the users' words
+    ports:
+      - "8000:8000"
+      - "8080:8000"  # same app for phones on the local network (http://<this-machine's-LAN-IP>:8080)
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  objects:

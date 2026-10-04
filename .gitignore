@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# App data and builds
+data/
+node_modules/
+web/dist/
+.pytest_cache/
+.playwright-mcp/
+
+# Secrets
+.env
+
+# macOS
+.DS_Store

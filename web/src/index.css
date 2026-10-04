@@ -1,0 +1,93 @@
+@import "tailwindcss";
+@import "./render/page.css" layer(components);
+
+@theme {
+  --color-ink: #1a2320;
+  --color-cloth: #24362f;
+  --color-cloth-deep: #1a2823;
+  --color-cloth-light: #33493f;
+  --color-mist: #eef1ec;
+  --color-panel: #f8f9f6;
+  --color-desk: #dfe4dd;
+  --color-line: #d3d9d1;
+  --color-muted: #5f6b65;
+  --color-brass: #94681f;
+  --color-brass-hover: #7d5717;
+  --color-brass-light: #d4ae62;
+  --color-danger: #a23b2a;
+  --color-on-cloth: #e9ede7;
+  --color-on-cloth-muted: #a9b6ae;
+  --color-cream: #fbf8f1;
+  --color-sand: #f7f1e3;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+
+  --animate-pulse-soft: pulse-soft 1.2s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-settle: settle 2.4s ease-in-out infinite alternate;
+  /* page turns: the reader sets --turn-ms on the book */
+  --animate-turn-next: turn-next var(--turn-ms, 760ms) cubic-bezier(.45, .05, .3, 1) forwards;
+  --animate-turn-prev: turn-prev var(--turn-ms, 760ms) cubic-bezier(.45, .05, .3, 1) forwards;
+  --animate-turn-in: turn-in var(--turn-ms, 760ms) cubic-bezier(.45, .05, .3, 1) forwards;
+  --animate-leaf-shade: leaf-shade var(--turn-ms, 760ms) ease-in-out;
+
+  @keyframes pulse-soft { 50% { opacity: .45; } }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @keyframes settle { to { transform: rotate(calc((var(--i) - 2) * 2deg)) translateY(calc(var(--i) * -2px)); } }
+  @keyframes turn-next { from { transform: rotateY(0); } to { transform: rotateY(-180deg); } }
+  @keyframes turn-prev { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
+  @keyframes turn-in { from { transform: rotateY(-180deg); } to { transform: rotateY(0); } }
+  @keyframes leaf-shade { 50% { opacity: 1; } }
+}
+
+@layer base {
+  html { color-scheme: light; background: var(--color-mist); -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+  body { min-height: 100dvh; font-size: 15px; line-height: 1.5; color: var(--color-ink); overscroll-behavior: none; }
+  img { display: block; }
+  :focus-visible { outline: 2px solid var(--color-brass-light); outline-offset: 2px; }
+  input[type=range] { accent-color: var(--color-brass); }
+  /* While the reader is open nothing behind it can scroll, bounce or show: it owns the whole viewport. */
+  html:has([data-reader]) { overflow: hidden; background: var(--color-cloth-deep); }
+  html:has([data-reader]) body { overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  }
+}
+
+/* Repeated controls. One-off styling lives in utilities in the markup. */
+@layer components {
+  .btn {
+    @apply inline-flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-transparent px-3.5
+      font-medium whitespace-nowrap no-underline transition-colors disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .btn-sm { @apply min-h-[30px] px-2.5 text-[13px]; }
+  .btn-lg { @apply min-h-12 px-6 text-base; }
+  .btn-brass { @apply bg-brass text-white hover:not-disabled:bg-brass-hover; }
+  .btn-quiet { @apply border-line bg-white hover:not-disabled:border-[#b7c0b8] hover:not-disabled:bg-panel; }
+  .btn-ghost { @apply border-on-cloth/20 text-on-cloth hover:not-disabled:bg-on-cloth/10; }
+  .btn-danger-text { @apply text-danger; }
+
+  .label { @apply text-[12.5px] font-semibold text-muted; }
+  .input {
+    @apply min-h-9 w-full rounded-md border border-line bg-white px-2.5 py-2 focus:border-brass focus:ring-3 focus:ring-brass/15
+      focus:outline-none;
+  }
+  .hint { @apply my-1 text-[12.5px] text-muted; }
+  .notice { @apply my-2 grid gap-1.5 rounded-md border border-line bg-white px-3 py-2.5 text-[13.5px]; }
+  .notice-error { @apply border-[#e3b9b0] bg-[#fbf1ee] text-[#6e2416]; }
+  .chip { @apply cursor-pointer rounded-full border border-line bg-white px-3 py-1 text-[12.5px] hover:border-brass; }
+
+  /* radio-button segments: <label class="segment"><input type="radio" class="sr-only"><span>…</span></label> */
+  .segmented { @apply inline-flex flex-wrap overflow-hidden rounded-md border border-line bg-white; }
+  .segment {
+    @apply relative cursor-pointer border-r border-line px-3.5 py-1.5 text-[13.5px] whitespace-nowrap last:border-r-0
+      has-checked:bg-cloth has-checked:text-on-cloth has-focus-visible:outline-2 has-focus-visible:-outline-offset-2
+      has-focus-visible:outline-brass-light;
+  }
+  .toggles { @apply mb-2 inline-flex overflow-hidden rounded-md border border-line bg-white; }
+  .toggle {
+    @apply min-w-8 cursor-pointer border-r border-line px-2.5 py-1 text-[12.5px] last:border-r-0
+      aria-pressed:bg-cloth aria-pressed:text-on-cloth;
+  }
+}

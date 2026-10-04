@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory Book Technical Description</title>
+<meta name="description" content="Components, chat editing (AG-UI), storage and observability of the Memory Book system. Issue 2. Written in ASD-STE100 Simplified Technical English.">
+<style>
+:root {
+  --bg: #f6f7f4; --surface: #ffffff; --ink: #1a2320; --muted: #5d6963; --line: #d6dcd4;
+  --accent: #8a611c; --accent-soft: #f3ead7; --cloth: #24362f; --on-cloth: #e9ede7;
+  --warn-bg: #fbeee9; --warn-line: #d9a08f; --caution-bg: #fbf5e6; --caution-line: #dcc58c;
+  --code-bg: #eef1ec; --ok: #3f7a55;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131a17; --surface: #1b2420; --ink: #e6ebe7; --muted: #9eaba4; --line: #2f3b36;
+    --accent: #d9b56d; --accent-soft: #2c2a1f; --cloth: #0f1513; --on-cloth: #e6ebe7;
+    --warn-bg: #2d1d19; --warn-line: #8a4b3d; --caution-bg: #2a2516; --caution-line: #7a6833;
+    --code-bg: #222c28; --ok: #7cc196;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131a17; --surface: #1b2420; --ink: #e6ebe7; --muted: #9eaba4; --line: #2f3b36;
+  --accent: #d9b56d; --accent-soft: #2c2a1f; --cloth: #0f1513; --on-cloth: #e6ebe7;
+  --warn-bg: #2d1d19; --warn-line: #8a4b3d; --caution-bg: #2a2516; --caution-line: #7a6833;
+  --code-bg: #222c28; --ok: #7cc196;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 16px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; }
+code { background: var(--code-bg); padding: .08em .35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+pre code { background: none; padding: 0; }
+header.cover { background: var(--cloth); color: var(--on-cloth); padding: 48px 16px 40px; }
+header.cover > div { max-width: 1120px; margin: 0 auto; }
+header.cover h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 10px; }
+header.cover p { margin: 4px 0; color: color-mix(in srgb, var(--on-cloth) 75%, transparent); max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 13.5px; }
+.meta span { border: 1px solid color-mix(in srgb, var(--on-cloth) 25%, transparent); border-radius: 999px; padding: 3px 12px; }
+.layout { max-width: 1120px; margin: 0 auto; padding: 24px 16px 80px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 40px; }
+nav.toc { position: sticky; top: 16px; align-self: start; font-size: 13.5px; max-height: calc(100vh - 32px); overflow-y: auto; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; }
+nav.toc li { margin: 2px 0; }
+nav.toc a { color: var(--muted); text-decoration: none; display: block; padding: 3px 8px; border-radius: 6px; }
+nav.toc a:hover { background: var(--accent-soft); color: var(--ink); }
+nav.toc .sub a { padding-left: 20px; font-size: 13px; }
+main { min-width: 0; }
+main section { margin-bottom: 44px; }
+h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: 27px; margin: 0 0 12px; padding-top: 6px; border-top: 1px solid var(--line); }
+h3 { font-size: 17px; margin: 26px 0 8px; }
+p { margin: 8px 0; max-width: 78ch; }
+.num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.table-wrap { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--code-bg) 60%, var(--surface)); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+.callout { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 12px 0; max-width: 78ch; }
+.callout strong { display: block; letter-spacing: .04em; font-size: 13px; }
+.warning { background: var(--warn-bg); border-color: var(--warn-line); }
+.caution { background: var(--caution-bg); border-color: var(--caution-line); }
+.note { background: var(--accent-soft); border-color: var(--accent); }
+ol.steps { padding-left: 0; list-style: none; counter-reset: step; max-width: 78ch; }
+ol.steps > li { counter-increment: step; position: relative; padding: 6px 0 6px 40px; }
+ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--cloth); color: var(--on-cloth); font-size: 13px; display: grid; place-items: center; }
+ul.list { max-width: 78ch; padding-left: 20px; }
+ul.list li { margin: 3px 0; }
+figure { margin: 16px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+svg text { font-family: system-ui, -apple-system, sans-serif; }
+.d-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.d-core { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.d-svc { fill: var(--code-bg); stroke: var(--line); stroke-width: 1.5; }
+.d-t { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.d-s { fill: var(--muted); font-size: 11.5px; }
+.d-line { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.d-dash { stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+.d-arrow { fill: var(--muted); }
+.d-arrow-a { fill: var(--accent); }
+.tag { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--code-bg); color: var(--muted); white-space: nowrap; }
+.tag.ok { color: var(--ok); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h4 { margin: 0 0 4px; font-size: 14.5px; }
+.card p { font-size: 14px; margin: 4px 0; }
+.theme-toggle { float: right; background: none; border: 1px solid color-mix(in srgb, var(--on-cloth) 30%, transparent); color: var(--on-cloth); border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface); }
+  td:first-child { white-space: normal; }
+}
+@media print {
+  nav.toc, .theme-toggle { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  header.cover { background: none; color: var(--ink); }
+}
+</style>
+</head>
+<body>
+<header class="cover">
+  <div>
+    <button class="theme-toggle" type="button" aria-label="Change the color theme">Theme</button>
+    <h1>Memory Book — Technical Description</h1>
+    <p>This document gives the components of the Memory Book system, the chat editing function (AG-UI), the data storage and the AI observability.</p>
+    <p>The language of this document agrees with ASD-STE100 Simplified Technical English.</p>
+    <div class="meta">
+      <span>Issue 3</span><span>Date: 2026-10-04</span><span>Standard: ASD-STE100, Issue 9</span><span>System version: 0.1.0</span><span>AG-UI protocol 1.0</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#changes">0 Change record</a></li>
+    <li><a href="#intro">1 Introduction</a></li>
+    <li><a href="#system">2 System description</a></li>
+    <li><a href="#components">3 Components</a></li>
+    <li class="sub"><a href="#services">3.1 Runtime services</a></li>
+    <li class="sub"><a href="#server">3.2 Server modules</a></li>
+    <li class="sub"><a href="#web">3.3 Web modules</a></li>
+    <li class="sub"><a href="#tests">3.4 Test suites</a></li>
+    <li><a href="#agui">4 Chat editing (AG-UI)</a></li>
+    <li class="sub"><a href="#agui-function">4.1 Function</a></li>
+    <li class="sub"><a href="#agui-input">4.2 Run input</a></li>
+    <li class="sub"><a href="#agui-events">4.3 Event sequence</a></li>
+    <li class="sub"><a href="#agui-approval">4.4 Approval (interrupts)</a></li>
+    <li class="sub"><a href="#agui-ops">4.5 Document operations</a></li>
+    <li class="sub"><a href="#agui-thread">4.6 Thread storage</a></li>
+    <li class="sub"><a href="#agui-patch">4.7 State deltas</a></li>
+    <li class="sub"><a href="#agui-client">4.8 Client behavior</a></li>
+    <li class="sub"><a href="#agui-modes">4.9 AI modes</a></li>
+    <li class="sub"><a href="#agui-limits">4.10 Limits</a></li>
+    <li><a href="#mlflow">5 AI observability (MLflow)</a></li>
+    <li><a href="#storage">6 Data storage</a></li>
+    <li><a href="#api">7 API reference</a></li>
+    <li><a href="#procedures">8 Procedures</a></li>
+    <li><a href="#config">9 Configuration</a></li>
+    <li><a href="#limits">10 Known limits</a></li>
+  </ol>
+</nav>
+
+<main>
+<!-- 0 -->
+<section id="changes">
+  <h2><span class="num">0</span>Change record</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Issue</th><th>Changes</th></tr>
+    <tr><td>Issue 3</td><td>The app uses LiteLLM to connect to the AI model. The user can select a model from many providers. The default model is <code>gemini/gemini-3.8-flash</code>. Paragraph 2.4 is new. Sections 3, 4.9, 5, 8, 9 and 10 are changed. The reader uses the page-turn animation on phones, and the full-screen mode now fills the screen.</td></tr>
+    <tr><td>Issue 2</td><td>The app reads settings from a <code>.env</code> file (section 9). The six limits in Issue 1, paragraph 4.7, are removed. The chat now streams the reply and the reasoning. It asks for approval before large changes. The server keeps the chat threads. The state deltas are smaller. <code>RUN_FINISHED</code> contains the token usage. The agent sends activity and messages-snapshot events. Sections 4, 5, 6, 7, 8 and 10 are new or changed.</td></tr>
+    <tr><td>Issue 1</td><td>First issue.</td></tr>
+  </table></div>
+</section>
+
+<!-- 1 -->
+<section id="intro">
+  <h2><span class="num">1</span>Introduction</h2>
+  <h3>1.1 Scope</h3>
+  <p>The Memory Book system makes personal photo books. The user gives photos and notes. The AI writes the text and puts the pages in order. The user then changes the book, reads the book and exports the book as a PDF file.</p>
+  <p>This document is for software engineers and operators. It does not give user instructions for the editor controls.</p>
+  <h3>1.2 Writing rules in this document</h3>
+  <ul class="list">
+    <li>Sentences in procedures have a maximum of 20 words. Descriptive sentences have a maximum of 25 words.</li>
+    <li>Each step in a procedure has one instruction. Instructions use the imperative form.</li>
+    <li>Words in <code>code font</code> are technical names. Words in quotation marks are labels on the screen. These names do not change.</li>
+    <li>A WARNING tells you about a risk to data or security. A CAUTION tells you about a risk to the system.</li>
+  </ul>
+  <h3>1.3 Terms</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Term</th><th>Meaning in this document</th></tr>
+    <tr><td>Book</td><td>One <code>MemoryBook</code> JSON document. It has the pages, the theme and the page size.</td></tr>
+    <tr><td>Page</td><td>One <code>MemoryPage</code>. It has elements and a background.</td></tr>
+    <tr><td>Element</td><td>One item on a page: text, image or shape. Each element has a position and a size in millimeters.</td></tr>
+    <tr><td>Template</td><td>A layout data set. The layout engine uses a template to put elements on a page.</td></tr>
+    <tr><td>Theme</td><td>A data set of fonts, colors, margins and photo frames.</td></tr>
+    <tr><td>Run</td><td>One AG-UI request and its event stream. A run is a new user request or an approval decision.</td></tr>
+    <tr><td>Thread</td><td>All messages of the chat for one book. The thread name is <code>book-&lt;book id&gt;</code>.</td></tr>
+    <tr><td>Operation</td><td>One typed change to the book, for example <code>set_text</code>.</td></tr>
+    <tr><td>Interrupt</td><td>An AG-UI request for a decision. The agent stops and waits until the user approves or cancels the plan.</td></tr>
+    <tr><td>State delta</td><td>A JSON Patch (RFC 6902). It tells the client how the book changed.</td></tr>
+    <tr><td>Trace</td><td>The MLflow record of one AI job. It contains spans.</td></tr>
+    <tr><td>Session</td><td>All traces for one book. The session name is the same as the thread name.</td></tr>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="system">
+  <h2><span class="num">2</span>System description</h2>
+  <h3>2.1 Function</h3>
+  <p>The system has one document model. The editor, the reader and the PDF renderer use the same document. Thus, the screen and the printed page agree.</p>
+  <p>The AI makes structured data only. The AI does not write user interface code. A layout engine in code calculates all positions.</p>
+  <h3>2.2 Architecture</h3>
+  <figure>
+    <svg viewBox="0 0 820 400" width="100%" role="img" aria-labelledby="arch-title arch-desc">
+      <title id="arch-title">System architecture</title>
+      <desc id="arch-desc">The browser connects to the app. The app connects to PostgreSQL, RustFS, MLflow and the AI model providers.</desc>
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-arrow"/></marker></defs>
+      <rect x="20" y="20" width="780" height="92" rx="10" class="d-box"/>
+      <text x="36" y="44" class="d-t">Browser (React)</text>
+      <rect x="36" y="56" width="170" height="42" rx="7" class="d-svc"/><text x="121" y="82" text-anchor="middle" class="d-s">Create</text>
+      <rect x="220" y="56" width="170" height="42" rx="7" class="d-svc"/><text x="305" y="76" text-anchor="middle" class="d-s">Editor + Chat panel</text><text x="305" y="90" text-anchor="middle" class="d-s">(AG-UI HttpAgent)</text>
+      <rect x="404" y="56" width="170" height="42" rx="7" class="d-svc"/><text x="489" y="82" text-anchor="middle" class="d-s">Reader</text>
+      <rect x="588" y="56" width="196" height="42" rx="7" class="d-core"/><text x="686" y="76" text-anchor="middle" class="d-t">Page renderer</text><text x="686" y="90" text-anchor="middle" class="d-s">mm / pt geometry</text>
+      <path d="M410 112 L410 150" class="d-line" marker-end="url(#ar)"/>
+      <text x="420" y="136" class="d-s">REST + SSE (AG-UI)</text>
+      <rect x="20" y="152" width="780" height="120" rx="10" class="d-box"/>
+      <text x="36" y="176" class="d-t">app (FastAPI, Python)</text>
+      <rect x="36" y="188" width="140" height="68" rx="7" class="d-core"/><text x="106" y="216" text-anchor="middle" class="d-t">MemoryBook</text><text x="106" y="232" text-anchor="middle" class="d-s">document model</text>
+      <rect x="188" y="188" width="140" height="68" rx="7" class="d-svc"/><text x="258" y="216" text-anchor="middle" class="d-s">AI pipeline</text><text x="258" y="232" text-anchor="middle" class="d-s">+ AG-UI agent</text>
+      <rect x="340" y="188" width="140" height="68" rx="7" class="d-svc"/><text x="410" y="216" text-anchor="middle" class="d-s">Layout engine</text><text x="410" y="232" text-anchor="middle" class="d-s">17 templates</text>
+      <rect x="492" y="188" width="140" height="68" rx="7" class="d-svc"/><text x="562" y="216" text-anchor="middle" class="d-s">PDF renderer</text><text x="562" y="232" text-anchor="middle" class="d-s">reportlab</text>
+      <rect x="644" y="188" width="140" height="68" rx="7" class="d-svc"/><text x="714" y="216" text-anchor="middle" class="d-s">Storage +</text><text x="714" y="232" text-anchor="middle" class="d-s">tracing</text>
+      <path d="M130 272 L130 318" class="d-line" marker-end="url(#ar)"/>
+      <path d="M330 272 L330 318" class="d-line" marker-end="url(#ar)"/>
+      <path d="M530 272 L530 318" class="d-line" marker-end="url(#ar)"/>
+      <path d="M720 272 L720 318" class="d-line" marker-end="url(#ar)"/>
+      <rect x="40" y="320" width="180" height="62" rx="8" class="d-svc"/><text x="130" y="346" text-anchor="middle" class="d-t">db</text><text x="130" y="364" text-anchor="middle" class="d-s">PostgreSQL 17</text>
+      <rect x="240" y="320" width="180" height="62" rx="8" class="d-svc"/><text x="330" y="346" text-anchor="middle" class="d-t">rustfs</text><text x="330" y="364" text-anchor="middle" class="d-s">S3 object storage</text>
+      <rect x="440" y="320" width="180" height="62" rx="8" class="d-svc"/><text x="530" y="346" text-anchor="middle" class="d-t">mlflow</text><text x="530" y="364" text-anchor="middle" class="d-s">traces + token usage</text>
+      <rect x="640" y="320" width="160" height="62" rx="8" class="d-box"/><text x="720" y="346" text-anchor="middle" class="d-t">AI model</text><text x="720" y="364" text-anchor="middle" class="d-s">via LiteLLM (optional)</text>
+    </svg>
+    <figcaption>Figure 1. The browser, the app and the services in <code>docker-compose.yml</code>. The AI model providers are external.</figcaption>
+  </figure>
+  <h3>2.3 Data flow for a new book</h3>
+  <ol class="steps">
+    <li>The user uploads photos. The app keeps the original file and makes a preview and a thumbnail.</li>
+    <li>The AI reads the photos and the notes. It makes a <code>MemoryAnalysis</code>: events, captions and photo importance.</li>
+    <li>The AI makes a <code>StoryPlan</code>: chapters, text, and one template name for each page.</li>
+    <li>The code checks the plan. It removes unknown photo IDs and duplicate photos.</li>
+    <li>The layout engine changes the plan into pages with positioned elements.</li>
+    <li>The app checks the book against the schema and records it in PostgreSQL.</li>
+  </ol>
+  <h3>2.4 AI models (LiteLLM)</h3>
+  <p>The app sends all AI requests through LiteLLM. LiteLLM connects to many providers with one interface, for example Google, OpenAI, Anthropic and local Ollama models.</p>
+  <ul class="list">
+    <li>Each request has a strict JSON schema. All fields are necessary, and the theme fields accept only the real theme names.</li>
+    <li>Some providers do not write fields that are not necessary. Without the strict schema, the result can be empty.</li>
+    <li>The app checks each result again with Pydantic. An empty analysis or an empty plan is a failure.</li>
+    <li>LiteLLM uses its local price list. It does not download data when the app starts.</li>
+  </ul>
+  <div class="callout warning"><strong>WARNING</strong>LiteLLM versions 1.82.7 and 1.82.8 contained malicious code (advisory MAL-2026-2144). The project uses version 1.104.0 exactly. The file <code>uv.lock</code> contains the hash of each package file. Before you change the version, examine the advisories in the OSV database.</div>
+</section>
+
+<!-- 3 -->
+<section id="components">
+  <h2><span class="num">3</span>Components</h2>
+  <h3 id="services">3.1 Runtime services</h3>
+  <p>The file <code>docker-compose.yml</code> starts four services. Each service has a health check. The <code>app</code> service starts only when the other services are healthy.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Service</th><th>Image</th><th>Function</th><th>Port</th></tr>
+    <tr><td><code>app</code></td><td>Build from <code>Dockerfile</code></td><td>Web application and API. It keeps no data on its disk.</td><td>8000</td></tr>
+    <tr><td><code>db</code></td><td><code>postgres:17-alpine</code></td><td>Books, photo data, chat threads and the MLflow tracking data (database <code>mlflow</code>).</td><td>127.0.0.1:5432</td></tr>
+    <tr><td><code>rustfs</code></td><td><code>rustfs/rustfs:1.0.1</code></td><td>S3 object storage for photos, PDF files and MLflow artifacts.</td><td>127.0.0.1:9000, 9001</td></tr>
+    <tr><td><code>mlflow</code></td><td>Build from <code>docker/mlflow.Dockerfile</code></td><td>Trace server and user interface for AI observability.</td><td>127.0.0.1:5000</td></tr>
+  </table></div>
+
+  <h3 id="server">3.2 Server modules (<code>src/memory_book/</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Module</th><th>Function</th></tr>
+    <tr><td><code>model.py</code></td><td>The <code>MemoryBook</code> schema (Pydantic). It also has the crop calculation <code>crop_rect</code>.</td></tr>
+    <tr><td><code>design.py</code></td><td>Loads the themes. Calculates text styles. Registers fonts. Wraps text with real font measurements.</td></tr>
+    <tr><td><code>static/themes.json</code></td><td>Six themes and seven font families. The web client and the PDF renderer read the same file.</td></tr>
+    <tr><td><code>layout.py</code></td><td>Seventeen templates as data. It puts content into slots and moves extra text and photos to new pages.</td></tr>
+    <tr><td><code>ai.py</code></td><td>The AI provider interface, the LiteLLM provider and the offline provider. It also makes the strict JSON schema for each stage. It has the twelve operation types and the <code>SummaryStream</code> decoder.</td></tr>
+    <tr><td><code>pipeline.py</code></td><td>The generation stages, the plan checks and the operation logic for revisions.</td></tr>
+    <tr><td><code>agui.py</code></td><td>The AG-UI agent. It streams events, asks for approval, writes the thread and calculates the JSON Patch.</td></tr>
+    <tr><td><code>tracing.py</code></td><td>MLflow set-up, session names, token usage records, the usage meter for each run, and content redaction.</td></tr>
+    <tr><td><code>storage.py</code></td><td>PostgreSQL access with a connection pool. S3 access with boto3. Image processing. Thread storage.</td></tr>
+    <tr><td><code>pdf.py</code></td><td>The PDF renderer. It draws vector text with embedded fonts and photos at 300 dpi.</td></tr>
+    <tr><td><code>app.py</code></td><td>The HTTP routes, the background jobs and the static file server.</td></tr>
+    <tr><td><code>migrate_sqlite.py</code></td><td>A one-time tool. It moves data from an older SQLite installation.</td></tr>
+  </table></div>
+
+  <h3 id="web">3.3 Web modules (<code>web/src/</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Module</th><th>Function</th></tr>
+    <tr><td><code>model.ts</code></td><td>The TypeScript copy of the document model and of the style and crop calculations.</td></tr>
+    <tr><td><code>render/Page.tsx</code></td><td>The page renderer for the editor, the thumbnails and the reader. It uses mm and pt units.</td></tr>
+    <tr><td><code>home/Home.tsx</code></td><td>The library. It shows the real cover of each book.</td></tr>
+    <tr><td><code>create/Create.tsx</code></td><td>The form for a new book and the progress screen.</td></tr>
+    <tr><td><code>editor/Editor.tsx</code></td><td>The editor frame: toolbar, keyboard commands, export dialog and the connection to the chat.</td></tr>
+    <tr><td><code>editor/Canvas.tsx</code></td><td>The page canvas. It moves, resizes and crops elements. It shows guides and text overflow.</td></tr>
+    <tr><td><code>editor/Inspector.tsx</code></td><td>The properties panel: Chat, Page or Selection, Photos and Book tabs.</td></tr>
+    <tr><td><code>editor/ChatPanel.tsx</code></td><td>The AG-UI client: messages, reasoning, checklist, approval card and token count. The app loads it only in the editor.</td></tr>
+    <tr><td><code>editor/PageList.tsx</code></td><td>The page thumbnails. The user can move pages with the mouse or the keyboard.</td></tr>
+    <tr><td><code>editor/state.ts</code></td><td>Undo and redo history, and operations on the document.</td></tr>
+    <tr><td><code>editor/autosave.ts</code></td><td>Saves after a delay. Keeps a local copy. Shows conflicts.</td></tr>
+    <tr><td><code>reader/Reader.tsx</code></td><td>The book reader. It shows two-page spreads on a large screen and one page on a phone. Both use the same 3D page-turn animation. In full screen, the book fills the screen and the controls disappear until the user moves the pointer or touches the screen.</td></tr>
+  </table></div>
+
+  <h3 id="tests">3.4 Test suites</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Suite</th><th>Tests</th><th>Subject</th></tr>
+    <tr><td><code>tests/test_backend.py</code></td><td>29</td><td>Model, layout, AI checks and fallback, LiteLLM requests and schemas, revisions, storage, PDF output for four page sizes, API.</td></tr>
+    <tr><td><code>tests/test_agui.py</code></td><td>9</td><td>Event order, streamed reply and reasoning, token usage, approval, cancel, thread storage, patches, errors.</td></tr>
+    <tr><td><code>tests/test_tracing.py</code></td><td>2</td><td>MLflow spans, token totals, sessions, redaction. It uses the live MLflow service.</td></tr>
+    <tr><td><code>web/src/**/*.test.ts(x)</code></td><td>11</td><td>History, document operations, autosave, reader spreads, parity with Python.</td></tr>
+  </table></div>
+  <p>The file <code>tests/fixtures/parity.json</code> is shared by the Python and the TypeScript tests. Thus, the two crop and style calculations stay the same.</p>
+</section>
+
+<!-- 4 -->
+<section id="agui">
+  <h2><span class="num">4</span>Chat editing (AG-UI)</h2>
+  <h3 id="agui-function">4.1 Function</h3>
+  <p>The chat lets the user change the book with words. The user does not have to move elements or use menus. The system uses the AG-UI protocol, version 1.0.</p>
+  <div class="grid2">
+    <div class="card"><h4>Streamed reply</h4><p>The reply shows word by word while the AI writes the plan. The server decodes the reply from the partial JSON.</p></div>
+    <div class="card"><h4>Visible reasoning</h4><p>The AI sends a summary of its thinking. The chat shows it under “How I approached this”.</p></div>
+    <div class="card"><h4>Approval</h4><p>Before the AI removes pages or changes more than three pages, it stops and asks the user.</p></div>
+    <div class="card"><h4>Live changes</h4><p>The page on the canvas changes during the run. The client receives a small state delta after each operation.</p></div>
+    <div class="card"><h4>Progress checklist</h4><p>An activity message shows each planned change. Each item shows a check mark when the server applies it.</p></div>
+    <div class="card"><h4>Server threads</h4><p>The server keeps the conversation. The history stays after a reload or on a different device.</p></div>
+    <div class="card"><h4>Token usage</h4><p><code>RUN_FINISHED</code> contains the tokens for each model. The chat shows the total under the reply.</p></div>
+    <div class="card"><h4>One undo step</h4><p>A full run is one step in the undo history. The chat shows an “Undo these changes” button.</p></div>
+    <div class="card"><h4>Frontend tool</h4><p>The agent can call <code>show_page</code>. The editor then turns to the page that changed.</p></div>
+  </div>
+
+  <h3 id="agui-input">4.2 Run input (<code>POST /api/agent</code>)</h3>
+  <p>The request body is an AG-UI <code>RunAgentInput</code>. The response is a stream of server-sent events (<code>text/event-stream</code>).</p>
+  <div class="table-wrap"><table>
+    <tr><th>Field</th><th>Value from the Memory Book client</th></tr>
+    <tr><td><code>threadId</code></td><td><code>book-&lt;book id&gt;</code>. One chat thread for each book.</td></tr>
+    <tr><td><code>runId</code></td><td>A new UUID for each run.</td></tr>
+    <tr><td><code>state</code></td><td><code>{"book": MemoryBook}</code>. This is the current book in the editor. The server checks it against the schema.</td></tr>
+    <tr><td><code>messages</code></td><td>The messages that the client has. The server adds only messages with new IDs to the stored thread.</td></tr>
+    <tr><td><code>tools</code></td><td>The frontend tool <code>show_page</code> with the parameter <code>pageId</code>.</td></tr>
+    <tr><td><code>context</code></td><td>One item, <code>editor-focus</code>, with <code>pageId</code> and <code>elementId</code> as JSON.</td></tr>
+    <tr><td><code>resume</code></td><td>Only for an approval decision: <code>[{interruptId, status, payload}]</code>. The status is <code>resolved</code> or <code>cancelled</code>.</td></tr>
+  </table></div>
+
+  <h3 id="agui-events">4.3 Event sequence</h3>
+  <p>The server sends the events in this sequence. A worker thread does the work, so each event goes to the client at once.</p>
+  <div class="table-wrap"><table>
+    <tr><th>#</th><th>Event</th><th>Content</th></tr>
+    <tr><td>1</td><td><code>RUN_STARTED</code></td><td>Thread ID and run ID.</td></tr>
+    <tr><td>2</td><td><code>STEP_STARTED</code></td><td><code>planning</code>. The client shows “Reading your book and planning the changes”.</td></tr>
+    <tr><td>3</td><td><code>REASONING_START</code>, <code>REASONING_MESSAGE_*</code>, <code>REASONING_END</code></td><td>The summary of the model thinking, in small parts. Offline mode sends one sentence about the rule that it used.</td></tr>
+    <tr><td>4</td><td><code>TEXT_MESSAGE_START</code>, <code>…_CONTENT</code>, <code>…_END</code></td><td>The reply. Each <code>CONTENT</code> event has some new words. The reply comes before the operations.</td></tr>
+    <tr><td>5</td><td><code>STEP_FINISHED</code></td><td><code>planning</code>.</td></tr>
+    <tr><td>6</td><td><code>STEP_STARTED</code></td><td><code>applying</code>. If the plan needs approval, the server goes to paragraph 4.4 here.</td></tr>
+    <tr><td>7</td><td><code>ACTIVITY_SNAPSHOT</code></td><td>Activity type <code>book-changes</code>: a list of the planned changes with the status <code>pending</code>.</td></tr>
+    <tr><td>8</td><td><code>TOOL_CALL_START</code>, <code>TOOL_CALL_ARGS</code>, <code>TOOL_CALL_END</code></td><td>One operation and its arguments. The parent message is the reply of event 4.</td></tr>
+    <tr><td>9</td><td><code>TOOL_CALL_RESULT</code></td><td><code>applied</code>, or <code>skipped: &lt;reason&gt;</code>.</td></tr>
+    <tr><td>10</td><td><code>STATE_DELTA</code></td><td>A JSON Patch on <code>/book</code> (paragraph 4.7). The server sends it only when the book changed.</td></tr>
+    <tr><td>11</td><td><code>ACTIVITY_DELTA</code></td><td>Sets the status of the item to <code>applied</code> or <code>skipped</code>. Events 8 to 11 repeat for each operation.</td></tr>
+    <tr><td>12</td><td><code>STEP_FINISHED</code></td><td><code>applying</code>.</td></tr>
+    <tr><td>13</td><td><code>TOOL_CALL_*</code> for <code>show_page</code></td><td>Only if the client sent this tool and a different page changed. The client sends the result.</td></tr>
+    <tr><td>14</td><td><code>MESSAGES_SNAPSHOT</code></td><td>The full thread as the server keeps it.</td></tr>
+    <tr><td>15</td><td><code>RUN_FINISHED</code></td><td>The outcome (<code>success</code> or <code>interrupt</code>) and <code>usage</code>: the tokens for each model.</td></tr>
+    <tr><td>—</td><td><code>RUN_ERROR</code></td><td>Replaces events 14 and 15 if the run fails. Codes: <code>bad_input</code>, <code>ai_error</code>, <code>unknown_interrupt</code>, <code>internal</code>. The book does not change.</td></tr>
+  </table></div>
+  <pre><code>data: {"type":"RUN_STARTED","threadId":"book-bk_f73e8984ca","runId":"…"}
+data: {"type":"STEP_STARTED","stepName":"planning"}
+data: {"type":"REASONING_MESSAGE_CONTENT","messageId":"…","delta":"The user wants an older look. "}
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"m1","delta":"Giving the book "}
+data: {"type":"ACTIVITY_SNAPSHOT","messageId":"…","activityType":"book-changes","content":{"status":"applying","done":0,"total":1,"items":[…]}}
+data: {"type":"TOOL_CALL_START","toolCallId":"…","toolCallName":"set_theme","parentMessageId":"m1"}
+data: {"type":"STATE_DELTA","delta":[{"op":"replace","path":"/book/themeId","value":"vintage"}]}
+data: {"type":"ACTIVITY_DELTA","messageId":"…","activityType":"book-changes","patch":[{"op":"replace","path":"/items/0/status","value":"applied"}, …]}
+data: {"type":"MESSAGES_SNAPSHOT","messages":[…]}
+data: {"type":"RUN_FINISHED","threadId":"…","runId":"…","outcome":{"type":"success"},"usage":[{"provider":"gemini","model":"gemini-3.8-flash","inputTokens":2594,"outputTokens":592,"totalTokens":3186}]}</code></pre>
+
+  <h3 id="agui-approval">4.4 Approval (interrupts)</h3>
+  <p>Some plans can remove much work. For these plans, the agent stops and asks the user. The book does not change until the user approves.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Condition</th><th>Result</th></tr>
+    <tr><td>The plan contains <code>delete_page</code></td><td>Approval is necessary.</td></tr>
+    <tr><td>The plan changes more than three pages (<code>APPROVAL_PAGE_LIMIT</code>)</td><td>Approval is necessary.</td></tr>
+    <tr><td>All other plans</td><td>The agent applies the plan at once.</td></tr>
+  </table></div>
+  <p>When approval is necessary, the server sends events 1 to 5. Then it sends an <code>ACTIVITY_SNAPSHOT</code> with the status <code>proposed</code>, a <code>MESSAGES_SNAPSHOT</code> and <code>RUN_FINISHED</code>. The outcome of <code>RUN_FINISHED</code> is <code>interrupt</code>:</p>
+  <pre><code>{"type":"interrupt","interrupts":[{"id":"…","reason":"approval_required",
+  "message":"This removes 2 pages. Do you want to apply these changes?",
+  "responseSchema":{"type":"object","properties":{"approved":{"type":"boolean"}}}}]}</code></pre>
+  <ul class="list">
+    <li>The server keeps the plan in the thread record. The client does not send the plan back. Thus, the client cannot change an approved plan.</li>
+    <li>The decision is a new run with <code>resume</code>. With <code>resolved</code>, the server applies the stored plan to the current book. With <code>cancelled</code>, the book does not change.</li>
+    <li>A new user request closes an open approval. An old or unknown interrupt ID gets <code>RUN_ERROR</code> with the code <code>unknown_interrupt</code>.</li>
+    <li>An open approval stays after a reload. <code>GET /api/agent/threads/{id}</code> sends it to the client.</li>
+  </ul>
+
+  <h3 id="agui-ops">4.5 Document operations (backend tools)</h3>
+  <p>The AI can use twelve operations. The server checks each operation. If an ID is unknown, the server does not apply the operation and tells the client.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Operation</th><th>Effect</th><th>Checklist label</th></tr>
+    <tr><td><code>set_text</code></td><td>Replaces the text of one text element.</td><td>Rewrite text on page N</td></tr>
+    <tr><td><code>set_book</code></td><td>Changes the title, subtitle or author. The cover text changes too.</td><td>Change the cover text</td></tr>
+    <tr><td><code>set_theme</code></td><td>Changes the theme of the full book.</td><td>Change the theme to …</td></tr>
+    <tr><td><code>apply_template</code></td><td>Puts a page into a different template. Text and photos that do not fit go to new pages.</td><td>Use the “…” layout on page N</td></tr>
+    <tr><td><code>replace_page</code></td><td>Makes a page again from new content: template, text and photo IDs.</td><td>Redesign page N</td></tr>
+    <tr><td><code>insert_page</code></td><td>Adds a new page after a given page.</td><td>Add a page after page N</td></tr>
+    <tr><td><code>delete_page</code></td><td>Removes a page. The cover cannot be removed. Approval is necessary.</td><td>Remove page N</td></tr>
+    <tr><td><code>move_page</code></td><td>Moves a page to a different position. The cover stays first.</td><td>Move page N to position M</td></tr>
+    <tr><td><code>move_photo</code></td><td>Moves a photo from one page to a different page. Both pages get a new layout.</td><td>Move a photo from page N to page M</td></tr>
+    <tr><td><code>set_background</code></td><td>Changes the background color of a page.</td><td>Change the background of page N</td></tr>
+    <tr><td><code>add_chapter</code></td><td>Makes a chapter, assigns pages to it and adds a chapter opener page.</td><td>Make the chapter “…”</td></tr>
+    <tr><td><code>set_style</code></td><td>Changes the font, size, color, alignment or emphasis of one element or of one text role.</td><td>Adjust the typography</td></tr>
+  </table></div>
+
+  <h3 id="agui-thread">4.6 Thread storage</h3>
+  <p>The server keeps each thread in the PostgreSQL table <code>agent_threads</code>. The thread contains AG-UI messages with these roles:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Role</th><th>Content</th></tr>
+    <tr><td><code>user</code></td><td>The request of the user.</td></tr>
+    <tr><td><code>reasoning</code></td><td>The thinking summary of the model.</td></tr>
+    <tr><td><code>assistant</code></td><td>The reply, and the tool calls that the reply started.</td></tr>
+    <tr><td><code>activity</code></td><td>The checklist of the changes, with its last status.</td></tr>
+    <tr><td><code>tool</code></td><td>The result of each tool call. The client sends the results of <code>show_page</code>.</td></tr>
+  </table></div>
+  <ul class="list">
+    <li>The model receives the last 12 user and assistant turns (<code>HISTORY_LIMIT</code>). Thus, “make it shorter” refers to the last subject.</li>
+    <li>The server keeps the newest 200 messages of a thread (<code>THREAD_MESSAGE_LIMIT</code>).</li>
+    <li>If a run fails, the server keeps the user message. The user can then try again.</li>
+  </ul>
+
+  <h3 id="agui-patch">4.7 State deltas</h3>
+  <p>The server compares the book before and after each operation. It sends the difference as a JSON Patch.</p>
+  <ul class="list">
+    <li>Lists of objects with an <code>id</code> field are compared by ID. These lists are pages, elements and chapters.</li>
+    <li>A new page gives one <code>add</code> operation. A removed page gives one <code>remove</code> operation. A moved page gives one <code>move</code> operation.</li>
+    <li>Other lists are compared by position. If the length changes, the server replaces the list. These lists are short, for example the photo IDs.</li>
+  </ul>
+  <p>The test <code>test_json_diff_round_trips_and_matches_lists_by_id</code> applies each patch and compares the result with the server book.</p>
+
+  <h3 id="agui-client">4.8 Client behavior</h3>
+  <ul class="list">
+    <li>The client uses <code>HttpAgent</code> from <code>@ag-ui/client</code>. The agent applies each state delta, activity delta and messages snapshot.</li>
+    <li>When the chat opens, the client reads the thread and any open approval from the server.</li>
+    <li>The editor puts each new book state into the undo history with the key <code>agent:&lt;runId&gt;</code>. Thus, one run is one undo step.</li>
+    <li>During a run, the canvas, the page list and the keyboard commands are locked. This prevents conflicts with the patches.</li>
+    <li>The approval card has two buttons: “Apply changes” and “Keep the book as it is”. Each button starts a run with <code>resume</code>.</li>
+    <li>The “Stop” button stops the client stream (<code>abortRun</code>). The server completes the run and keeps the result in the thread.</li>
+    <li>The client sends the result of <code>show_page</code> after the run. Thus, the next run has a complete thread.</li>
+    <li>The prompt bar below the canvas sends its text through the same chat.</li>
+    <li>The autosave function records the changed book in the database after 1.2 seconds.</li>
+  </ul>
+
+  <h3 id="agui-modes">4.9 AI modes</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Function</th><th>AI model mode (model key set)</th><th>Offline mode (no API key)</th></tr>
+    <tr><td>Streamed reply</td><td><span class="tag ok">Yes</span> (model tokens)</td><td><span class="tag ok">Yes</span> (word by word)</td></tr>
+    <tr><td>Reasoning</td><td><span class="tag ok">Yes</span> (thought summary, if the model supplies it)</td><td><span class="tag ok">Yes</span> (the rule that matched)</td></tr>
+    <tr><td>Token usage in <code>RUN_FINISHED</code></td><td><span class="tag ok">Yes</span></td><td><span class="tag">No</span> (no model)</td></tr>
+    <tr><td>Change the theme, length, layout or text size</td><td><span class="tag ok">Yes</span></td><td><span class="tag ok">Yes</span></td></tr>
+    <tr><td>Use fewer words</td><td><span class="tag ok">Yes</span> (rewrites)</td><td><span class="tag ok">Yes</span> (keeps the first sentences)</td></tr>
+    <tr><td>Add the unused photos</td><td><span class="tag ok">Yes</span></td><td><span class="tag ok">Yes</span></td></tr>
+    <tr><td>Rewrite text, captions or tone</td><td><span class="tag ok">Yes</span></td><td><span class="tag">No</span></td></tr>
+    <tr><td>Move a photo, make a chapter</td><td><span class="tag ok">Yes</span></td><td><span class="tag">No</span></td></tr>
+  </table></div>
+  <p>If the model call fails, the server tries the fallback models, then the offline rules. Before it uses the offline rules, it removes the part of the reply that the model streamed. If the offline rules cannot do the request, the client receives <code>RUN_ERROR</code>.</p>
+
+  <h3 id="agui-limits">4.10 Limits of the AG-UI integration</h3>
+  <ul class="list">
+    <li>The approval rule is fixed in the code. The user cannot change the limit of three pages.</li>
+    <li>The client always sends the full book as <code>state</code>. The server does not send <code>STATE_SNAPSHOT</code>.</li>
+    <li>Each run uses one server thread. If the client stops the stream, the run continues to the end.</li>
+    <li>The chat accepts text only. It does not accept photos or files in a message.</li>
+    <li>The agent does not use sub-agents, so it sends no <code>SUBAGENT_*</code> events.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="mlflow">
+  <h2><span class="num">5</span>AI observability (MLflow)</h2>
+  <p>The app sends traces to MLflow when <code>MLFLOW_TRACKING_URI</code> is set. Without this value, the trace functions do nothing.</p>
+  <h3>5.1 Trace structure</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>Book generation</h4>
+<pre><code>generate_book        AGENT
+├─ understanding     CHAIN
+│  └─ llm.MemoryAnalysis     CHAT_MODEL
+├─ organizing        CHAIN
+├─ story             CHAIN
+│  └─ llm.StoryPlan          CHAT_MODEL
+└─ design            CHAIN</code></pre>
+    </div>
+    <div class="card">
+      <h4>Chat run</h4>
+<pre><code>agent_run            AGENT
+├─ plan_revision     CHAIN
+│  └─ llm.RevisionPlan       CHAT_MODEL
+├─ set_theme         TOOL
+└─ apply_template    TOOL</code></pre>
+      <p>An approval run has only <code>agent_run</code> and the TOOL spans. The attribute <code>resume</code> is <code>true</code>.</p>
+    </div>
+  </div>
+  <h3>5.2 Recorded data</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Data</th><th>Location</th></tr>
+    <tr><td>Token usage</td><td>Each <code>CHAT_MODEL</code> span has <code>mlflow.chat.tokenUsage</code>: input, output, cache read and cache write tokens. MLflow adds the values for each trace.</td></tr>
+    <tr><td>Cost</td><td>Each <code>CHAT_MODEL</code> span has the attribute <code>cost_usd</code>. LiteLLM calculates it from its price list.</td></tr>
+    <tr><td>Token usage for the client</td><td>A usage meter collects the same values during a chat run. The agent puts them into <code>RUN_FINISHED.usage</code>.</td></tr>
+    <tr><td>Session</td><td>Trace metadata <code>mlflow.trace.session</code> = <code>book-&lt;book id&gt;</code>. The generation trace and all chat traces of a book have the same session.</td></tr>
+    <tr><td>Tags</td><td><code>kind</code> (<code>generation</code> or <code>chat</code>), <code>provider</code>, <code>run_id</code>, <code>fallback</code>.</td></tr>
+    <tr><td>Model</td><td>The span attribute <code>served_by</code> shows the model that answered. This can be a fallback model.</td></tr>
+    <tr><td>Stage results</td><td>Number of events, chapters and pages, template names, fallback reasons, operation results, approval decisions.</td></tr>
+    <tr><td>Errors</td><td>A failed AI call sets the span and the trace to the error state.</td></tr>
+  </table></div>
+  <div class="callout warning"><strong>WARNING</strong>Traces contain the text of the users, for example diary notes. To record steps and token usage only, set <code>MLFLOW_TRACE_CONTENT=false</code>. Photo data is never recorded.</div>
+</section>
+
+<!-- 6 -->
+<section id="storage">
+  <h2><span class="num">6</span>Data storage</h2>
+  <h3>6.1 PostgreSQL (database <code>memory_book</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Table</th><th>Columns</th><th>Notes</th></tr>
+    <tr><td><code>books</code></td><td><code>id, title, doc JSONB, version, created_at, updated_at</code></td><td>The <code>version</code> value prevents lost changes. A save with an old version gets HTTP 409.</td></tr>
+    <tr><td><code>assets</code></td><td><code>id, filename, width, height, taken_at, description, ext, created_at</code></td><td>Photo data. The AI description helps later revisions.</td></tr>
+    <tr><td><code>agent_threads</code></td><td><code>thread_id, messages JSONB, pending JSONB, updated_at</code></td><td>Chat threads. <code>pending</code> contains the open interrupt and its stored plan.</td></tr>
+  </table></div>
+  <h3>6.2 Object storage (bucket <code>memory-book</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Key</th><th>Content</th></tr>
+    <tr><td><code>assets/&lt;id&gt;/original.&lt;ext&gt;</code></td><td>The original file, without changes. The PDF renderer uses it.</td></tr>
+    <tr><td><code>assets/&lt;id&gt;/preview.jpg</code></td><td>1800 px. The editor and the reader use it.</td></tr>
+    <tr><td><code>assets/&lt;id&gt;/thumb.jpg</code></td><td>480 px. The page list and the AI use it.</td></tr>
+    <tr><td><code>exports/&lt;book&gt;-v&lt;version&gt;[-bleed].pdf</code></td><td>Exported PDF files.</td></tr>
+    <tr><td><code>mlflow/…</code></td><td>MLflow artifacts.</td></tr>
+  </table></div>
+</section>
+
+<!-- 7 -->
+<section id="api">
+  <h2><span class="num">7</span>API reference</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Method and path</th><th>Function</th></tr>
+    <tr><td><code>GET /api/design</code></td><td>Themes, fonts, templates, page sizes and the AI mode.</td></tr>
+    <tr><td><code>POST /api/assets</code></td><td>Uploads photos (multipart). Sends back the photos and the errors.</td></tr>
+    <tr><td><code>POST /api/assets/lookup</code></td><td>Sends back data for a list of photo IDs.</td></tr>
+    <tr><td><code>GET /api/assets/{id}/{variant}</code></td><td>Sends a photo file: <code>thumb</code>, <code>preview</code> or <code>original</code>.</td></tr>
+    <tr><td><code>DELETE /api/assets/{id}</code></td><td>Removes a photo and its files.</td></tr>
+    <tr><td><code>GET /api/books</code></td><td>The library list with the cover pages.</td></tr>
+    <tr><td><code>POST /api/books/generate</code></td><td>Starts an AI generation job. Sends back a job ID and the stages.</td></tr>
+    <tr><td><code>POST /api/books</code></td><td>Records a book that the client made.</td></tr>
+    <tr><td><code>GET /api/books/{id}</code></td><td>The book, its version and its photo data.</td></tr>
+    <tr><td><code>PUT /api/books/{id}</code></td><td>Saves a book. Version <code>null</code> overwrites. A version conflict gets HTTP 409.</td></tr>
+    <tr><td><code>DELETE /api/books/{id}</code></td><td>Removes a book.</td></tr>
+    <tr><td><code>POST /api/agent</code></td><td>The AG-UI endpoint (section 4).</td></tr>
+    <tr><td><code>GET /api/agent/threads/{id}</code></td><td>The stored thread and the open interrupt, if there is one.</td></tr>
+    <tr><td><code>POST /api/layout</code></td><td>Applies a template to a page, or makes a new page from a template.</td></tr>
+    <tr><td><code>POST /api/resize</code></td><td>Changes the page size of a book.</td></tr>
+    <tr><td><code>POST /api/books/{id}/export</code></td><td>Starts a PDF job. The option <code>bleed</code> adds 3 mm on each edge.</td></tr>
+    <tr><td><code>GET /api/jobs/{id}</code></td><td>The status, stage, result or error of a job.</td></tr>
+    <tr><td><code>GET /api/exports/{name}</code></td><td>Downloads an exported PDF file.</td></tr>
+  </table></div>
+</section>
+
+<!-- 8 -->
+<section id="procedures">
+  <h2><span class="num">8</span>Procedures</h2>
+
+  <h3>8.1 Start the system</h3>
+  <div class="callout warning"><strong>WARNING</strong>The default passwords of PostgreSQL and RustFS are public. Change them before you connect the system to a public network.</div>
+  <ol class="steps">
+    <li>Install Docker with Docker Compose.</li>
+    <li>Optional: copy <code>.env.example</code> to <code>.env</code>.</li>
+    <li>Optional: write your model key in <code>.env</code>, for example after <code>GEMINI_API_KEY=</code>.</li>
+    <li>In the project folder, type <code>docker compose up --build</code>.</li>
+    <li>Wait until all four services are healthy.</li>
+    <li>Open <code>http://localhost:8000</code> in a browser.</li>
+  </ol>
+
+  <h3>8.2 Make a new book</h3>
+  <ol class="steps">
+    <li>Click “Start a new book”.</li>
+    <li>Upload the photos.</li>
+    <li>Write some words about the memory.</li>
+    <li>Optional: open “Details and style” and set the title, theme, size or length.</li>
+    <li>Click “Create my book”.</li>
+    <li>Wait until the editor opens.</li>
+  </ol>
+
+  <h3>8.3 Change a book with the chat</h3>
+  <ol class="steps">
+    <li>Open the book in the editor.</li>
+    <li>Select the “Chat” tab.</li>
+    <li>Optional: go to the page that you want to change.</li>
+    <li>Write the request, or click a suggestion.</li>
+    <li>Press Enter.</li>
+    <li>Examine the changes on the canvas and in the checklist.</li>
+    <li>If you do not like the result, click “Undo these changes”.</li>
+  </ol>
+
+  <h3>8.4 Approve or cancel a large change</h3>
+  <div class="callout caution"><strong>CAUTION</strong>Approved changes can remove pages. Read the list of proposed changes before you click “Apply changes”.</div>
+  <ol class="steps">
+    <li>Read the question in the approval card.</li>
+    <li>Read the items under “Proposed changes”.</li>
+    <li>To apply the plan, click “Apply changes”.</li>
+    <li>To keep the book, click “Keep the book as it is”.</li>
+    <li>Optional: after you apply, click “Undo these changes” to go back.</li>
+  </ol>
+
+  <h3>8.5 Export a PDF file</h3>
+  <ol class="steps">
+    <li>Click “Export PDF”.</li>
+    <li>Select “For reading and sharing” or “For a print shop”.</li>
+    <li>Click “Create PDF”.</li>
+    <li>Read the warnings, if there are warnings.</li>
+    <li>Click “Download PDF”.</li>
+  </ol>
+
+  <h3>8.6 Do the tests</h3>
+  <div class="caution callout"><strong>CAUTION</strong>The Python tests need the services <code>db</code>, <code>rustfs</code> and <code>mlflow</code>. Start them before you start the tests.</div>
+  <ol class="steps">
+    <li>Type <code>docker compose up -d db rustfs mlflow</code>.</li>
+    <li>Type <code>uv run pytest</code>.</li>
+    <li>Go to the <code>web</code> folder.</li>
+    <li>Type <code>npm test</code>.</li>
+    <li>Type <code>npx tsc -b</code> and <code>npm run lint</code>.</li>
+  </ol>
+
+  <h3>8.7 Move data from an older SQLite installation</h3>
+  <div class="caution callout"><strong>CAUTION</strong>An older Postgres volume does not contain the <code>mlflow</code> database. Make it before you start the <code>mlflow</code> service.</div>
+  <ol class="steps">
+    <li>Type <code>docker compose exec db psql -U memory_book -c "CREATE DATABASE mlflow"</code>.</li>
+    <li>Type <code>uv run python -m memory_book.migrate_sqlite data</code>.</li>
+    <li>Make sure that the tool shows the number of books.</li>
+  </ol>
+</section>
+
+<!-- 9 -->
+<section id="config">
+  <h2><span class="num">9</span>Configuration</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Variable</th><th>Default</th><th>Function</th></tr>
+    <tr><td><code>DATABASE_URL</code></td><td><code>postgresql://memory_book:…@localhost:5432/memory_book</code></td><td>The PostgreSQL connection.</td></tr>
+    <tr><td><code>S3_ENDPOINT</code></td><td><code>http://localhost:9000</code></td><td>The S3 server (RustFS).</td></tr>
+    <tr><td><code>S3_ACCESS_KEY</code>, <code>S3_SECRET_KEY</code></td><td><code>rustfsadmin</code></td><td>The S3 credentials.</td></tr>
+    <tr><td><code>S3_BUCKET</code></td><td><code>memory-book</code></td><td>The bucket. The app makes it if it does not exist.</td></tr>
+    <tr><td><code>MEMORY_BOOK_MODEL</code></td><td><code>gemini/gemini-3.8-flash</code></td><td>The AI model, as a LiteLLM model name: <code>provider/model</code>.</td></tr>
+    <tr><td><code>GEMINI_API_KEY</code>, <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, …</td><td>(empty)</td><td>The key for the provider of the model. Without the key, the app uses the offline mode.</td></tr>
+    <tr><td><code>MEMORY_BOOK_FALLBACK_MODELS</code></td><td>(empty)</td><td>Other models, separated by commas. The app tries them in sequence if the first model fails.</td></tr>
+    <tr><td><code>MEMORY_BOOK_EFFORT</code></td><td>(empty)</td><td>The reasoning effort, for models that accept it.</td></tr>
+    <tr><td><code>MEMORY_BOOK_THINKING_BUDGET</code></td><td><code>1024</code> for Gemini</td><td>The number of thinking tokens. <code>0</code> turns thinking off. Gemini sends a thought summary only with this value.</td></tr>
+    <tr><td><code>ANTHROPIC_WORKSPACE_ID</code></td><td>(empty)</td><td>Only for Anthropic keys that are not scoped to a workspace.</td></tr>
+    <tr><td><code>MLFLOW_TRACKING_URI</code></td><td>(empty)</td><td>The MLflow server. Empty means no traces.</td></tr>
+    <tr><td><code>MLFLOW_EXPERIMENT</code></td><td><code>memory-book</code></td><td>The MLflow experiment name.</td></tr>
+    <tr><td><code>MLFLOW_TRACE_CONTENT</code></td><td><code>true</code></td><td><code>false</code> removes user text and model output from traces.</td></tr>
+    <tr><td><code>HOST</code>, <code>PORT</code></td><td><code>127.0.0.1</code>, <code>8000</code></td><td>The address of the web server.</td></tr>
+  </table></div>
+  <p>The app reads these values from the environment. If the folder of the command contains a <code>.env</code> file, <code>memory-book</code> and <code>docker compose</code> also read that file. A value in the environment has priority over a value in <code>.env</code>.</p>
+  <div class="callout warning"><strong>WARNING</strong>The <code>.env</code> file contains secrets. Git and Docker do not copy this file. Do not send it to other persons.</div>
+  <p>The tests do not read <code>.env</code>. Thus, the tests do not use the API key.</p>
+  <p>The values <code>HISTORY_LIMIT</code> (12), <code>APPROVAL_PAGE_LIMIT</code> (3) and <code>THREAD_MESSAGE_LIMIT</code> (200) are constants in the code.</p>
+</section>
+
+<!-- 10 -->
+<section id="limits">
+  <h2><span class="num">10</span>Known limits</h2>
+  <ul class="list">
+    <li>The live tests used <code>gemini/gemini-3.8-flash</code>. The other providers were tested with simulated LiteLLM responses only.</li>
+    <li>The provider sends the reply in large parts. For Gemini Flash, one reply arrives in approximately two parts.</li>
+    <li>The system has no user accounts. All users of one installation see all books and all threads.</li>
+    <li>Background jobs and chat runs use threads in the app process. If you start more than one app process, use a job queue.</li>
+    <li>The app sends photos through its own process. For high traffic, use signed S3 links.</li>
+    <li>The map page shows a decorative map. It does not show real map data.</li>
+    <li>The database schema is made at start-up. A schema change will need a migration tool.</li>
+    <li>For the limits of the chat, refer to paragraph 4.10.</li>
+  </ul>
+</section>
+</main>
+</div>
+<script>
+// Theme toggle: light ↔ dark, remembered on this device when storage is available.
+(function () {
+  var root = document.documentElement, key = 'memory-book-report-theme';
+  try { var saved = localStorage.getItem(key); if (saved) root.dataset.theme = saved; } catch (e) {}
+  document.querySelector('.theme-toggle').addEventListener('click', function () {
+    var dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem(key, root.dataset.theme); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

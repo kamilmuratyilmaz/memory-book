@@ -1,0 +1,26 @@
+/* The page renderer. Not layout CSS: these rules reproduce the print geometry of src/memory_book/pdf.py
+   (millimetre boxes, no kerning or ligatures), so the screen and the PDF stay identical. */
+
+.mb-page { position: relative; overflow: hidden; flex: none; }
+.mb-el { position: absolute; margin: 0; }
+.mb-text {
+  display: flex; flex-direction: column; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden;
+  /* the PDF renderer uses plain advance widths: no kerning, ligatures or synthetic styles */
+  font-kerning: none; font-variant-ligatures: none; font-synthesis: none; text-rendering: geometricPrecision;
+}
+.mb-text-flow, .mb-text-edit { flex: none; min-height: 1em; }
+.mb-text-edit { outline: none; cursor: text; }
+.mb-image-inner { position: absolute; overflow: hidden; }
+.mb-image-inner img { position: absolute; max-width: none; user-select: none; -webkit-user-drag: none; }
+.mb-image-inner.is-empty { background: rgba(0, 0, 0, .06); }
+/* a photo that no longer exists: clearly a missing photo, not a blank or broken page */
+.mb-image-inner.is-missing { background: repeating-linear-gradient(135deg, rgba(0, 0, 0, .05) 0 2mm, rgba(0, 0, 0, .09) 2mm 4mm); display: grid; place-items: center; }
+.mb-image-hint { font: 600 3.2mm/1.2 var(--font-sans); color: rgba(0, 0, 0, .5); text-align: center; padding: 2mm; }
+.mb-image.frame-mat, .mb-image.frame-polaroid {
+  background: #fffdf8;
+  box-shadow: .25mm .45mm 0 rgba(0, 0, 0, .10), .6mm 1mm 0 rgba(0, 0, 0, .06);
+}
+.mb-tape { position: absolute; top: -3.2mm; height: 6.4mm; background: #e9ddbf; opacity: .78; }
+.mb-page-number { position: absolute; left: 0; right: 0; text-align: center; font-kerning: none; }
+.mb-scaled { position: relative; overflow: hidden; flex: none; }
+.mb-scaled-inner { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
