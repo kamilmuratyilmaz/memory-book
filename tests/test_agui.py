@@ -121,6 +121,20 @@ def test_approval_interrupt_then_resume(store, photos):
     assert again[-1].type == "RUN_ERROR" and again[-1].code == "unknown_interrupt"
 
 
+def test_text_rewrites_across_pages_need_approval_and_only_an_explicit_yes_applies(store, photos):
+    book = make_book(store, photos)
+    texts = [t for p in book.pages if (t := next((e for e in p.elements if e.type == "text"), None))]
+    assert len(texts) == 4  # one text per page, over the 3-page limit
+    rewrite = RevisionPlan(summary="Rewrote it all.", operations=[
+        OpSetText(op="set_text", elementId=e.id, text="New words.") for e in texts])
+    events = run(book, FakeProvider(plan=rewrite), store, text="rewrite every page")
+    assert events[-1].outcome.type == "interrupt" and "changes 4 pages" in events[-1].outcome.interrupts[0].message
+    assert "STATE_DELTA" not in types(events)
+    vague = run(book, FakeProvider(), store, text=None, resume=[
+        {"interruptId": events[-1].outcome.interrupts[0].id, "status": "resolved", "payload": {"approved": "no"}}])
+    assert "STATE_DELTA" not in types(vague)  # anything but approved: true leaves the book alone
+
+
 def test_cancel_and_superseded_approvals(store, photos):
     book = make_book(store, photos)
     big = RevisionPlan(summary="Big redesign.", operations=[

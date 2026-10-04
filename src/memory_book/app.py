@@ -26,7 +26,7 @@ from .ai import AIError, AIProvider, GenerationInput, default_provider
 from .layout import TEMPLATES, PageContent, apply_template, materialize, template_catalog
 from .model import PAGE_SIZES, MemoryBook, MemoryPage
 from .pdf import render_pdf
-from .storage import AssetError, ConflictError, Store, default_store
+from .storage import MAX_UPLOAD_BYTES, AssetError, ConflictError, Store, default_store
 
 log = logging.getLogger(__name__)
 WEB_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
@@ -118,6 +118,8 @@ def create_app(store: Store | None = None, provider: AIProvider | None = None) -
         ok, errors = [], []
         for f in files:
             try:
+                if (f.size or 0) > MAX_UPLOAD_BYTES:  # refuse before reading it into memory
+                    raise AssetError(f"{f.filename} is larger than {MAX_UPLOAD_BYTES // 2**20} MB")
                 ok.append(store.add_asset(f.filename or "photo", await f.read()).public())
             except AssetError as e:
                 errors.append(str(e))

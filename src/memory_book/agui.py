@@ -182,10 +182,15 @@ def describe(op, book: MemoryBook) -> str:
 def needs_approval(plan: RevisionPlan, book: MemoryBook) -> str | None:
     """Why this plan should wait for the user's approval, or None to apply it at once."""
     deletes = sum(op.op == "delete_page" for op in plan.operations)
+    # Content changes count per page (text edits name an element, so map it to its page). Whole-book style changes
+    # (set_theme, set_style by role) change no words or photos and are one undo away: they need no approval.
+    page_of_element = {e.id: p.id for p in book.pages for e in p.elements}
     pages: set[str] = set()
     for n, op in enumerate(plan.operations):
         pages.update(filter(None, [getattr(op, k, None) for k in ("pageId", "fromPageId", "toPageId")]))
         pages.update(getattr(op, "pageIds", []) or [])
+        if element := getattr(op, "elementId", None):
+            pages.add(page_of_element.get(element, f"element-{element}"))
         if op.op == "insert_page":
             pages.add(f"new-{n}")
     if deletes:
@@ -418,7 +423,7 @@ def _resume(inp, book, pending, out: Output, store, root) -> None:
     if not pending or pending["interrupt"]["id"] != entry.interrupt_id:
         raise BadInput("This approval request is no longer open. Ask for the change again.", "unknown_interrupt")
     plan = RevisionPlan.model_validate(pending["plan"])  # the plan we stored, never one sent by the client
-    approved = entry.status == "resolved" and (entry.payload or {}).get("approved", True) is not False
+    approved = entry.status == "resolved" and (entry.payload or {}).get("approved") is True  # only an explicit yes
     root.set_inputs({"interrupt": entry.interrupt_id, "approved": approved})
     if not approved:
         out.reply("OK, I left the book as it was.")
